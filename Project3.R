@@ -1,3 +1,4 @@
+# Rex's test one more time!
 
 # Author: Daniel Pompa
 # Project 3: Classification
@@ -33,6 +34,7 @@
 
 # Import libraries
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Bridget Adding Comment
 library("tidyverse")
 library("nnet")
 library("MAP")
