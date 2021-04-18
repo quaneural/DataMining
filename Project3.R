@@ -164,7 +164,6 @@ counties
 # Add variables to map data
 counties_all <- counties %>% left_join(cases_train %>%  mutate(county = county_name %>% str_to_lower() %>% 
                                                   str_replace('\\s+county\\s*$', '')))
-
 ## Joining, by = c("state", "county")
 ggplot(counties_all, aes(long, lat)) + 
   geom_polygon(aes(group = group, fill = bad), color = "black", size = 0.1) + 
@@ -231,6 +230,24 @@ confusionMatrix(data = cases_test$bad_predicted, ref = cases_test$bad)
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # End of Getting Started Code
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Brainstorming:
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Threshold -> Classify by percentages
+# Create confusion matrices that classify with a range of thresholds
+# Can we:
+# - Use Logistic Regression to determine a case/death rate number for counties or states
+# - Classifier predicts:
+#   - cases (%)
+#   - deaths (%)
+#   - vaccine distribution (Can this be done without time series analysis?)
+# - Assumptions for Feature Selection:
+#   - County density should be a major factor
+#   - Cases/deaths need to be closely tied to density
+#   - Research (maybe just training sample set):
+#     -  mask mandate by state 
+#     -  vaccines administered by state
+# - Businesses implement proof of vaccine policy
 
 
 #####
