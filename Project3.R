@@ -1,4 +1,4 @@
-# Rex's test one more time!!!!!!!
+# Rex's test one more time!
 
 # Author: Daniel Pompa
 # Project 3: Classification
