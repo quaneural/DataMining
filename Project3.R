@@ -223,7 +223,6 @@ ggplot(counties_test, aes(long, lat)) +
   coord_quickmap() + 
   scale_fill_manual(values = c('TRUE' = 'red', 'FALSE' = 'grey'))
 
-
 # Confusion matrix
 confusionMatrix(data = cases_test$bad_predicted, ref = cases_test$bad)
 
