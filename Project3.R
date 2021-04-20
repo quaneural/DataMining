@@ -68,6 +68,12 @@ govt_response <- dbGetQuery(con,"
   WHERE country_name LIKE 'United_States'
 ")
 
+mobility <- dbGetQuery(con,"
+ SELECT * 
+  FROM `bigquery-public-data.covid19_google_mobility.mobility_report` 
+  WHERE country_region LIKE 'United States'
+")
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Beginning of Getting Started Code
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
