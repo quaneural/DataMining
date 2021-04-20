@@ -54,13 +54,19 @@ con <- dbConnect(
   dataset = "covid19_last_week"
 )
 
-cases <- dbGetQuery(con,'
+cases <- dbGetQuery(con,"
  SELECT *
   FROM `bigquery-public-data.covid19_usafacts.summary` covid19
   JOIN `bigquery-public-data.census_bureau_acs.county_2017_5yr` acs
   ON covid19.county_fips_code = acs.geo_id
   WHERE date = DATE_SUB(CURRENT_DATE(), INTERVAL 7 day)
-')
+")
+
+govt_response <- dbGetQuery(con,"
+ SELECT * 
+  FROM `bigquery-public-data.covid19_govt_response.oxford_policy_tracker` 
+  WHERE country_name LIKE 'United_States'
+")
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Beginning of Getting Started Code
