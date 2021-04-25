@@ -63,6 +63,19 @@ cases <- dbGetQuery(con,'
 #WHERE date = DATE_SUB(CURRENT_DATE(), INTERVAL 7 day)
 #?? Daniel the number of rows does not change if I put an interval of  7 or 30 days
 cases_orig = cases
+
+mobility <- dbGetQuery(con,"
+ SELECT * 
+  FROM `bigquery-public-data.covid19_google_mobility.mobility_report` 
+  WHERE country_region LIKE 'United States'
+")
+
+govt_response <- dbGetQuery(con,"
+ SELECT * 
+  FROM `bigquery-public-data.covid19_govt_response.oxford_policy_tracker` 
+  WHERE country_name LIKE 'United_States'
+")
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Beginning of Getting Started Code
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -234,10 +247,10 @@ confusionMatrix(data = cases_test$bad_predicted, ref = cases_test$bad)
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # End of Getting Started Code
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#  Begin Feature Importance Analysis - Bridget  ------------------------------------------------------------------------
+#  Begin Feature Importance Analysis  --------------------------------------------------------------------------------------------------
 #     CHI SQUARE AND CFS
-#  Find most important features across the US   ------------------------------------------------------------------------
-#-----------------------------------------------------------------------------------------------------------------------
+#  Find most important features across the US   -----------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------------------------------------------
 # My Goal is the get the top 80 of 259 features and feed it into Random Forest for feature importance, then choose top 20
 colnames(cases_orig)
 death_set = dplyr::select(cases_orig, -county_fips_code, -state_fips_code, -geo_id, -state, -date, -gini_index, -do_date, -county_name, -confirmed_cases)
@@ -349,8 +362,26 @@ in_grades_9_to_12, occupation_sales_office, male_10_to_14, female_10_to_14,sales
 
 #Can we merge these top 20 down to 15?
 
-#   End Feature Importance Analysis  -----------------------------------------------------------------------------------
-#-----------------------------------------------------------------------------------------------------------------------
+#   End Feature Importance Analysis  ----------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------------------------------------
+# Brainstorming:
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Threshold -> Classify by percentages
+# Create confusion matrices that classify with a range of thresholds
+# Can we:
+# - Use Logistic Regression to determine a case/death rate number for counties or states
+# - Classifier predicts:
+#   - cases (%)
+#   - deaths (%)
+#   - vaccine distribution (Can this be done without time series analysis?)
+# - Assumptions for Feature Selection:
+#   - County density should be a major factor
+#   - Cases/deaths need to be closely tied to density
+#   - Research (maybe just training sample set):
+#     -  mask mandate by state 
+#     -  vaccines administered by state
+# - Businesses implement proof of vaccine policy
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Classification Models:
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # 1. Logistic Regression
