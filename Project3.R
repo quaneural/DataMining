@@ -64,11 +64,13 @@ cases <- dbGetQuery(con,'
 #?? Daniel the number of rows does not change if I put an interval of  7 or 30 days
 cases_orig = cases
 
+#TOO BIG TO DOWNLOAD??
 mobility <- dbGetQuery(con,"
  SELECT * 
   FROM `bigquery-public-data.covid19_google_mobility.mobility_report` 
   WHERE country_region LIKE 'United States'
 ")
+
 
 govt_response <- dbGetQuery(con,"
  SELECT * 
@@ -76,6 +78,8 @@ govt_response <- dbGetQuery(con,"
   WHERE country_name LIKE 'United_States'
 ")
 
+#NO COUNTY FIPS CODE or COUNTY NAME??
+str(govt_response)
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Beginning of Getting Started Code
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -361,6 +365,32 @@ male_under_5, hispanic_male_45_54,high_school_including_ged, high_school_diploma
 in_grades_9_to_12, occupation_sales_office, male_10_to_14, female_10_to_14,sales_office_employed, in_school, employed_retail_trade)
 
 #Can we merge these top 20 down to 15?
+
+#Now look at deaths as a percentage of population or deaths per 1000
+death_set2 = death_set
+covid_set2 = covid_set
+
+death_set2$deathsP1000 = death_set2$deaths*1000/(death_set2$total_pop)
+covid_set2$casesP1000= covid_set2$confirmed_cases*1000/(covid_set2$total_pop)
+
+death_set2 = dplyr::select(death_set2, -deaths)
+US_death1000_weights <- death_set2 %>% chi.squared(deathsP1000 ~ ., data = .) %>%
+  as_tibble(rownames = "feature") %>%
+  arrange(desc(attr_importance))
+US_death1000_weights
+write.table(US_death1000_weights, file="chisquare_US_death1000_weights.csv",sep = ",")
+
+covid_set2 = dplyr::select(covid_set2, -confirmed_cases)
+US_covid1000_weights <- covid_set2 %>% chi.squared(casesP1000 ~ ., data = .) %>%
+  as_tibble(rownames = "feature") %>%
+  arrange(desc(attr_importance))
+US_covid1000_weights
+write.table(US_covid1000_weights, file="chisquare_US_covid1000_weights.csv",sep = ",")
+
+cfs_US_death1000_features= death_set2 %>%cfs(deathsP1000 ~ ., data = .)
+cfs_US_death1000_features
+cfs_US_covid1000_features=covid_set2 %>%cfs(casesP1000 ~ ., data = .)
+cfs_US_covid1000_features
 
 #   End Feature Importance Analysis  ----------------------------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------------------------------------------------------------
