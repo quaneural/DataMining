@@ -392,6 +392,51 @@ cfs_US_death1000_features
 cfs_US_covid1000_features=covid_set2 %>%cfs(casesP1000 ~ ., data = .)
 cfs_US_covid1000_features
 
+top82USDeath1000Features =dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,total_pop,
+amerindian_pop,commuters_by_subway_or_elevated,owner_occupied_housing_units_lower_value_quartile,
+owner_occupied_housing_units_upper_value_quartile,owner_occupied_housing_units_median_value,walked_to_work,
+dwellings_10_to_19_units,median_rent,vacant_housing_units_for_sale,income_15000_19999,
+worked_at_home,female_female_households,renter_occupied_housing_units_paying_cash_median_gross_rent,
+father_one_parent_families_with_young_children,father_in_labor_force_one_parent_families_with_young_children,
+commute_35_44_mins,commute_35_39_mins,rent_10_to_15_percent,income_100000_124999,white_pop,white_male_55_64,graduate_professional_degree,income_150000_199999,
+male_45_64_bachelors_degree,male_45_64_some_college,amerindian_pop,three_cars,
+less_one_year_college,mortgaged_housing_units,bachelors_degree_or_higher_25_64,employed_science_management_admin_waste,
+bachelors_degree_2,bachelors_degree,some_college_and_associates_degree,masters_degree,commute_25_29_mins,employed_construction,commute_40_44_mins,four_more_cars,
+employed_arts_entertainment_recreation_accommodation_food,male_45_64_graduate_degree,income_125000_149999,white_including_hispanic,employed_pop,less_than_high_school_graduate,
+income_75000_99999,workers_16_and_over,commuters_by_car_truck_van,male_male_households,
+armed_forces,commuters_16_over,income_60000_74999,commute_30_34_mins,management_business_sci_arts_employed,occupation_management_arts,
+not_hispanic_pop,commuters_drove_alone,male_45_64_associates_degree,associates_degree,pop_in_labor_force,two_parents_in_labor_force_families_with_young_children,
+other_race_pop,civilian_labor_force,employed_wholesale_trade,male_55_to_59,employed_finance_insurance_real_estate,
+employed_information,occupation_sales_office,sales_office_employed,different_house_year_ago_different_city,
+median_income,employed_other_services_not_public_admin,two_cars,one_year_more_college,million_dollar_housing_units,
+dwellings_1_units_detached,income_less_10000,male_60_61,poverty,male_40_to_44,commuters_by_carpool,income_50000_59999,occupation_natural_resources_construction_maintenance)
+
+
+top82USDeath1000Features$deathsP1000 = top82USDeath1000Features$deaths*1000/(top82USDeath1000Features$total_pop)
+
+
+top83USCovid1000Features  =dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, confirmed_cases,total_pop,
+amerindian_pop,owner_occupied_housing_units_upper_value_quartile,owner_occupied_housing_units_median_value,owner_occupied_housing_units_lower_value_quartile,
+renter_occupied_housing_units_paying_cash_median_gross_rent,median_age,median_rent,percent_income_spent_on_rent,
+vacant_housing_units,income_per_capita,employed_agriculture_forestry_fishing_hunting_mining,
+commuters_by_subway_or_elevated,commute_less_10_mins,million_dollar_housing_units,median_income,
+vacant_housing_units_for_sale,two_parents_in_labor_force_families_with_young_children,commute_30_34_mins,
+commute_5_9_mins,commute_45_59_mins,commuters_by_public_transportation,commute_60_more_mins,
+walked_to_work,employed_manufacturing,employed_wholesale_trade,different_house_year_ago_same_city,
+worked_at_home,commute_90_more_mins,households_retirement_income,group_quarters,commute_35_39_mins,housing_built_1939_or_earlier,
+employed_finance_insurance_real_estate,two_parent_families_with_young_children,white_male_45_54,commute_35_44_mins,
+black_including_hispanic,masters_degree,white_male_55_64,black_pop,male_65_to_66,male_70_to_74,female_65_to_66,
+white_pop,commute_25_29_mins,in_grades_5_to_8,three_cars,female_85_and_over,
+commuters_drove_alone,dwellings_1_units_attached,commute_40_44_mins,
+commuters_by_bus,black_male_45_54,commute_20_24_mins,male_45_64_graduate_degree,black_male_55_64,aggregate_travel_time_to_work,
+employed_education_health_social,employed_transportation_warehousing_utilities,rent_under_10_percent,
+male_5_to_9,employed_science_management_admin_waste,graduate_professional_degree,male_22_to_24,male_75_to_79,
+male_male_households,occupation_production_transportation_material,female_62_to_64,
+less_than_high_school_graduate,commute_60_89_mins,female_70_to_74,
+mobile_homes,management_business_sci_arts_employed,occupation_management_arts,male_under_5,mortgaged_housing_units,female_60_to_61,
+employed_other_services_not_public_admin,female_80_to_84,income_200000_or_more,income_45000_49999,occupation_natural_resources_construction_maintenance)
+
+top83USCovid1000Features$casesP1000= top83USCovid1000Features$confirmed_cases*1000/(top83USCovid1000Features$total_pop)
 #   End Feature Importance Analysis  ----------------------------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------------------------------------------------------------
 # Brainstorming:
