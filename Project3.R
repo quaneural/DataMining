@@ -373,22 +373,22 @@ in_grades_9_to_12, occupation_sales_office, male_10_to_14, female_10_to_14,sales
 death_set2 = death_set
 covid_set2 = covid_set
 
-death_set2$deathsP1000 = death_set2$deaths*1000/(death_set2$total_pop)
-covid_set2$casesP1000= covid_set2$confirmed_cases*1000/(covid_set2$total_pop)
+death_set2$deathsP1000 = death_set2$deaths/(death_set2$total_pop *10000)
+covid_set2$casesP1000= covid_set2$confirmed_cases/(covid_set2$total_pop*10000)
 
 death_set2 = dplyr::select(death_set2, -deaths)
 US_death1000_weights <- death_set2 %>% chi.squared(deathsP1000 ~ ., data = .) %>%
   as_tibble(rownames = "feature") %>%
   arrange(desc(attr_importance))
 US_death1000_weights
-write.table(US_death1000_weights, file="chisquare_US_death1000_weights.csv",sep = ",")
+write.table(US_death1000_weights, file="chisquare_US_death10000_weights.csv",sep = ",")
 
 covid_set2 = dplyr::select(covid_set2, -confirmed_cases)
 US_covid1000_weights <- covid_set2 %>% chi.squared(casesP1000 ~ ., data = .) %>%
   as_tibble(rownames = "feature") %>%
   arrange(desc(attr_importance))
 US_covid1000_weights
-write.table(US_covid1000_weights, file="chisquare_US_covid1000_weights.csv",sep = ",")
+write.table(US_covid1000_weights, file="chisquare_US_covid10000_weights.csv",sep = ",")
 
 cfs_US_death1000_features= death_set2 %>%cfs(deathsP1000 ~ ., data = .)
 cfs_US_death1000_features
@@ -415,7 +415,7 @@ median_income,employed_other_services_not_public_admin,two_cars,one_year_more_co
 dwellings_1_units_detached,income_less_10000,male_60_61,poverty,male_40_to_44,commuters_by_carpool,income_50000_59999,occupation_natural_resources_construction_maintenance)
 
 
-top82USDeath1000Features$deathsP1000 = top82USDeath1000Features$deaths*1000/(top82USDeath1000Features$total_pop)
+top82USDeath1000Features$deathsP1000 = top82USDeath1000Features$deaths/(top82USDeath1000Features$total_pop*10000)
 
 
 top83USCovid1000Features  =dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, confirmed_cases,total_pop,
@@ -439,7 +439,7 @@ less_than_high_school_graduate,commute_60_89_mins,female_70_to_74,
 mobile_homes,management_business_sci_arts_employed,occupation_management_arts,male_under_5,mortgaged_housing_units,female_60_to_61,
 employed_other_services_not_public_admin,female_80_to_84,income_200000_or_more,income_45000_49999,occupation_natural_resources_construction_maintenance)
 
-top83USCovid1000Features$casesP1000= top83USCovid1000Features$confirmed_cases*1000/(top83USCovid1000Features$total_pop)
+top83USCovid1000Features$casesP1000= top83USCovid1000Features$confirmed_cases/(top83USCovid1000Features$total_pop*10000)
 
 
 #  Random Forest feature importance to sort feature importance
@@ -454,7 +454,7 @@ imp <- data.frame(predictors=rownames(imp),imp)
 sorted = imp
 sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
 sorted
-write.csv(sorted, file = "sortedFeatureImportanceRandomForest-1000Deaths.csv", row.names = TRUE)
+write.csv(sorted, file = "sortedFeatureImportanceRandomForest-10000Deaths.csv", row.names = TRUE)
 
 rf <-randomForest(casesP1000 ~ . , 
                   data=dplyr::select(top83USCovid1000Features, -confirmed_cases, -county_fips_code, -geo_id,
@@ -465,10 +465,10 @@ imp <- data.frame(predictors=rownames(imp),imp)
 sorted = imp
 sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
 sorted
-write.csv(sorted, file = "sortedFeatureImportanceRandomForest-1000Covid.csv", row.names = TRUE)
+write.csv(sorted, file = "sortedFeatureImportanceRandomForest-10000Covid.csv", row.names = TRUE)
 
 #------------------------------------------------------------------
-#Top Features for Death and Covid per 1000
+#Top Features for Death and Covid per 10000? (need to recheck after update)
 #--------------------------------------------------------------------
 ## I eliminated these that were in top male_45_64_bachelors_degrthree_cars,male_45_64_some_collegeother_race_pop
 ## not_hispanic_popemployed_finance_insurance_real_estate,white_male_55_64employed_other_services_not_public_admin
@@ -524,7 +524,7 @@ topCovidP1000Features=dplyr::select(cases_orig, county_fips_code, geo_id, state_
 # Create confusion matrices to compare model performance
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#SEE topCovidP1000Features, topDeath1000Features vs topCovidFeatures topDeathFeatures 
+#SEE topCovidP1000Features, topDeathP1000Features vs topCovidFeatures topDeathFeatures 
 
 
 
