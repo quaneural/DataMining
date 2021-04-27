@@ -33,7 +33,6 @@
 
 # Import libraries
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#Bridget Adding Comment
 library("tidyverse")
 library("nnet")
 library("MAP")
@@ -63,6 +62,7 @@ cases <- dbGetQuery(con,'
   WHERE date = DATE_SUB(CURRENT_DATE(), INTERVAL 7 day')
 
 cases_orig = cases
+#write.csv(cases_orig,file = "Project3Dataset.csv", row.names = TRUE)
 
 #TOO BIG TO DOWNLOAD??
 mobility <- dbGetQuery(con,"
@@ -363,8 +363,7 @@ topDeathFeatures=dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_
   median_rent,less_than_high_school_graduate, worked_at_home,  not_hispanic_pop, different_house_year_ago_different_city,
   commute_35_44_mins, male_60_61, poverty, employed_finance_insurance_real_estate,vacant_housing_units_for_sale,
  dwellings_10_to_19_units, bachelors_degree,white_including_hispanic,  bachelors_degree_2, less_one_year_college,walked_to_work,
- three_cars, two_parents_in_labor_force_families_with_young_children
-)
+ three_cars, two_parents_in_labor_force_families_with_young_children)
 
 # I included the pop, state and other features you may need for graphs but not for models
 topCovidFeatures=dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,total_pop,
