@@ -60,9 +60,8 @@ cases <- dbGetQuery(con,'
   FROM `bigquery-public-data.covid19_usafacts.summary` covid19
   JOIN `bigquery-public-data.census_bureau_acs.county_2017_5yr` acs
   ON covid19.county_fips_code = acs.geo_id
-  WHERE date = DATE_SUB("2021-03-25", INTERVAL 30 day)
-')
-#WHERE date = DATE_SUB(CURRENT_DATE(), INTERVAL 7 day)
+  WHERE date = DATE_SUB(CURRENT_DATE(), INTERVAL 7 day')
+
 #?? Daniel the number of rows does not change if I put an interval of  7 or 30 days
 cases_orig = cases
 
