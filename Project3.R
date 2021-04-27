@@ -44,6 +44,8 @@ library("FSelector")
 library("caret")
 library("dplyr")
 library("DBI")
+library("relaimpo")
+library("randomForest")
 
 # Establish connection to bigrquery database and query data
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -352,21 +354,23 @@ sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),]
 sorted
 write.csv(sorted, file = "sortedFeatureImportanceRandomForest-Covid.csv", row.names = TRUE)
 
-
-top20DeathFeatures = dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,
+#------------------------------------------------------------------
+#Top Features for Death and Covid
+#--------------------------------------------------------------------
+topDeathFeatures = dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,
 high_school_diploma,high_school_including_ged,male_45_64_high_school,poverty,less_than_high_school_graduate,income_10000_14999,
 children_in_single_female_hh,households_public_asst_or_food_stamps,commute_60_more_mins,female_75_to_79,not_in_labor_force,
 female_80_to_84,not_hispanic_pop,income_15000_19999,dwellings_2_units,other_race_pop,commute_90_more_mins,
 one_parent_families_with_young_children,rent_over_50_percent)
 
-top21CovidFeatures = dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, confirmed_cases,
+topCovidFeatures = dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, confirmed_cases,
  father_one_parent_families_with_young_children,in_grades_1_to_4,children, male_5_to_9, female_under_5, families_with_young_children,
 male_under_5, hispanic_male_45_54,high_school_including_ged, high_school_diploma,female_15_to_17, in_grades_5_to_8,female_5_to_9,
 in_grades_9_to_12, occupation_sales_office, male_10_to_14, female_10_to_14,sales_office_employed, in_school, employed_retail_trade)
 
-#Can we merge these top 20 down to 15?
-
+#------------------------------------------------------------------
 #Now look at deaths as a percentage of population or deaths per 1000
+#--------------------------------------------------------------------
 death_set2 = death_set
 covid_set2 = covid_set
 
@@ -437,6 +441,59 @@ mobile_homes,management_business_sci_arts_employed,occupation_management_arts,ma
 employed_other_services_not_public_admin,female_80_to_84,income_200000_or_more,income_45000_49999,occupation_natural_resources_construction_maintenance)
 
 top83USCovid1000Features$casesP1000= top83USCovid1000Features$confirmed_cases*1000/(top83USCovid1000Features$total_pop)
+
+
+#  Random Forest feature importance to sort feature importance
+rf <-randomForest(deathsP1000 ~ . , 
+                  data=dplyr::select(top82USDeath1000Features, -deaths, -county_fips_code, -geo_id,
+                                     -state_fips_code,-state,-date,-county_name,total_pop) ,
+                  importance=TRUE,ntree=1000, na.action=na.exclude)
+#Evaluate variable importance
+imp = importance(rf, type=1)
+imp <- data.frame(predictors=rownames(imp),imp)
+# Order the predictor levels by importance
+sorted = imp
+sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
+sorted
+write.csv(sorted, file = "sortedFeatureImportanceRandomForest-1000Deaths.csv", row.names = TRUE)
+
+rf <-randomForest(casesP1000 ~ . , 
+                  data=dplyr::select(top83USCovid1000Features, -confirmed_cases, -county_fips_code, -geo_id,
+                                    -state_fips_code,-state,-date,-county_name,total_pop) ,
+                  importance=TRUE,ntree=1000,na.action=na.exclude)
+imp = importance(rf, type=1)
+imp <- data.frame(predictors=rownames(imp),imp)
+sorted = imp
+sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
+sorted
+write.csv(sorted, file = "sortedFeatureImportanceRandomForest-1000Covid.csv", row.names = TRUE)
+
+#------------------------------------------------------------------
+#Top Features for Death and Covid per 1000
+#--------------------------------------------------------------------
+## I eliminated these that were in top male_45_64_bachelors_degrthree_cars,male_45_64_some_collegeother_race_pop
+## not_hispanic_popemployed_finance_insurance_real_estate,white_male_55_64employed_other_services_not_public_admin
+##other_race_popnot_hispanic_popwhite_including_hispanic
+# I also include tho pop, state and other features you may need for graphs but not for models
+topDeathP1000Features=dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,total_pop,
+owner_occupied_housing_units_lower_value_quartile, white_pop,amerindian_pop,
+owner_occupied_housing_units_upper_value_quartile,owner_occupied_housing_units_median_value,
+four_more_cars,worked_at_home,less_than_high_school_graduate,different_house_year_ago_different_city,
+walked_to_work,median_income,employed_wholesale_trade,commute_35_39_mins,
+two_parents_in_labor_force_families_with_young_children,income_15000_19999,income_125000_149999,
+commute_25_29_mins,poverty,armed_forces,father_one_parent_families_with_young_children,
+occupation_natural_resources_construction_maintenance)
+
+# For covid I eliminated owner_occupied_housing_units_median_value,vacant_housing_units,
+## owner_occupied_housing_units_upper_value_quartile, black_pop,black_male_55_64,black_male_55_64
+# I also include tho pop, state and other features you may need for graphs but not for models
+topCovidP1000Features=dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,total_pop,
+ median_age, percent_income_spent_on_rent,mobile_homes, income_per_capita,  group_quarters,
+ walked_to_work, less_than_high_school_graduate,median_rent, median_income,employed_wholesale_trade,  
+ employed_manufacturing,occupation_production_transportation_material,employed_agriculture_forestry_fishing_hunting_mining,
+ two_parents_in_labor_force_families_with_young_children,amerindian_pop,commute_less_10_mins,  black_including_hispanic, different_house_year_ago_same_city,commuters_by_subway_or_elevated,
+ commute_90_more_mins, owner_occupied_housing_units_lower_value_quartile, male_male_households,commuters_by_public_transportation)                                   
+
 #   End Feature Importance Analysis  ----------------------------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------------------------------------------------------------
 # Brainstorming:
@@ -468,7 +525,7 @@ top83USCovid1000Features$casesP1000= top83USCovid1000Features$confirmed_cases*10
 # Create confusion matrices to compare model performance
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
+#SEE topCovidP1000Features, topDeath1000Features vs topCovidFeatures topDeathFeatures 
 
 
 
