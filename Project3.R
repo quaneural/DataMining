@@ -62,7 +62,6 @@ cases <- dbGetQuery(con,'
   ON covid19.county_fips_code = acs.geo_id
   WHERE date = DATE_SUB(CURRENT_DATE(), INTERVAL 7 day')
 
-#?? Daniel the number of rows does not change if I put an interval of  7 or 30 days
 cases_orig = cases
 
 #TOO BIG TO DOWNLOAD??
@@ -256,195 +255,81 @@ confusionMatrix(data = cases_test$bad_predicted, ref = cases_test$bad)
 #     CHI SQUARE AND CFS
 #  Find most important features across the US   -----------------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------------------------------------------------------------
-# My Goal is the get the top 80 of 259 features and feed it into Random Forest for feature importance, then choose top 20
+# My Goal is the get the top 80 of 259 features and feed it into Random Forest for feature importance, then choose top 20 or so
 colnames(cases_orig)
-death_set = dplyr::select(cases_orig, -county_fips_code, -state_fips_code, -geo_id, -state, -date, -gini_index, -do_date, -county_name, -confirmed_cases)
-covid_set = dplyr::select(cases_orig, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -do_date, -county_name, -deaths)
-colnames(death_set)
-#Remove county_fips_code, geo_id, county_name, confirmed_cases
-#Remove county_fips_code, geo_id, county_name, deaths
-
-#Interestingly ChiSquare can be performed without Factoring or Removing N/A
-US_death_weights <- death_set %>% chi.squared(deaths ~ ., data = .) %>%
-  as_tibble(rownames = "feature") %>%
-  arrange(desc(attr_importance))
-US_death_weights
-write.table(US_death_weights, file="chisquare_US_death_weights.csv",sep = ",")
-
-US_covid_weights <- covid_set %>% chi.squared(confirmed_cases ~ ., data = .) %>%
-  as_tibble(rownames = "feature") %>%
-  arrange(desc(attr_importance))
-US_covid_weights
-write.table(US_covid_weights, file="chisquare_US_covid_weights.csv",sep = ",")
-
-
-cfs_US_death_features= death_set %>%cfs(deaths ~ ., data = .)
-cfs_US_death_features
-#[1] "rent_over_50_percent"            "hispanic_pop"                    "other_race_pop"                 
-#[4] "income_10000_14999"              "dwellings_2_units"               "housing_built_1939_or_earlier"  
-#[7] "male_75_to_79"                   "female_75_to_79"                 "amerindian_including_hispanic"  
-#[10] "commute_90_more_mins"            "commuters_by_subway_or_elevated" "male_45_64_high_school"         
-#[13] "poverty"                         "high_school_diploma"             "commute_60_more_mins"           
-#[16] "hispanic_any_race"    
-cfs_US_covid_features=covid_set %>%cfs(confirmed_cases ~ ., data = .)
-cfs_US_covid_features
-#[1] "father_one_parent_families_with_young_children" "hispanic_male_45_54"                           
-#[3] "occupation_sales_office"                        "sales_office_employed
-
-# Find Top 80 features by merging CFS with ChiSquare
-#Based on data  March 25, 2021 - April 25, 2021
-#Need to rerun if we are to look at earlier dates in 2020
-top84USCovidFeatures = dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, confirmed_cases,
-father_one_parent_families_with_young_children,hispanic_male_45_54,occupation_sales_office,sales_office_employed,
-children,female_under_5,families_with_young_children,male_under_5,male_pop,
-in_school,population_3_years_over,female_30_to_34,total_pop,population_1_year_and_over,
-in_grades_1_to_4,pop_25_64,in_grades_5_to_8,male_30_to_34,pop_16_over,
-commuters_by_car_truck_van,pop_determined_poverty_status,female_pop,in_grades_9_to_12,
-female_10_to_14,commuters_16_over,male_25_to_29,civilian_labor_force,male_10_to_14,
-pop_in_labor_force,female_25_to_29,commuters_drove_alone,female_5_to_9,pop_25_years_over,
-workers_16_and_over,male_5_to_9,employed_pop,households,occupied_housing_units,male_15_to_17,
-female_15_to_17,family_households,male_35_to_39,female_35_to_39,male_40_to_44,
-male_45_to_49,occupation_sales_office,sales_office_employed,female_45_to_49,male_50_to_54,
-female_40_to_44,female_22_to_24,not_hispanic_pop,male_45_to_64,two_cars,
-female_50_to_54,married_households,employed_education_health_social,occupation_services,
-male_22_to_24,housing_units_renter_occupied,one_year_more_college,owner_occupied_housing_units,
-two_parent_families_with_young_children,some_college_and_associates_degree,one_car,
-commute_15_19_mins,employed_retail_trade,high_school_including_ged,income_50000_59999,
-male_55_to_59,commute_10_14_mins,income_60000_74999,three_cars,female_55_to_59,
-not_in_labor_force,management_business_sci_arts_employed,occupation_management_arts,occupation_production_transportation_material,
-nonfamily_households,housing_units,white_including_hispanic,high_school_diploma,income_75000_99999,commuters_by_carpool)
-
-top96USDeathFeatures = dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,
-rent_over_50_percent,hispanic_pop,other_race_pop,income_10000_14999,dwellings_2_units,housing_built_1939_or_earlier,male_75_to_79,
-female_75_to_79,amerindian_including_hispanic,commute_90_more_mins,commuters_by_subway_or_elevated,male_45_64_high_school,poverty,
-high_school_diploma,commute_60_more_mins,hispanic_any_race,children_in_single_female_hh,high_school_including_ged,one_car,
-not_in_labor_force,female_pop,children,population_3_years_over, population_1_year_and_over, total_pop,
-high_school_diploma,one_parent_families_with_young_children,families_with_young_children, pop_25_64,pop_25_years_over,
-in_grades_9_to_12,pop_16_over,female_under_5, male_pop,female_25_to_29,male_under_5,female_5_to_9,in_grades_1_to_4,
-pop_determined_poverty_status,less_than_high_school_graduate,male_15_to_17,income_20000_24999,female_80_to_84,family_households,
-female_75_to_79,female_70_to_74, in_grades_5_to_8,female_15_to_17,households, occupied_housing_units,male_10_to_14,
-female_45_to_49,poverty, in_school, female_40_to_44,  income_25000_29999,income_30000_34999,income_15000_19999,
-female_10_to_14, female_50_to_54,male_5_to_9,income_10000_14999, male_45_to_49, male_45_to_64, commuters_by_car_truck_van,
-owner_occupied_housing_units,male_25_to_29, female_35_to_39, male_50_to_54, commuters_drove_alone,two_cars,
-occupation_production_transportation_material, commuters_16_over,income_35000_39999,pop_in_labor_force,male_40_to_44,
-housing_units,housing_units_renter_occupied,male_45_64_high_school,female_22_to_24,nonfamily_households,
-households_public_asst_or_food_stamps, not_hispanic_pop,female_55_to_59,male_30_to_34,workers_16_and_over,male_35_to_39,
-male_55_to_59,income_40000_44999,one_year_more_college,income_less_10000,civilian_labor_force,occupation_services,
-income_50000_59999,employed_pop)
-
-library("relaimpo")
-library("randomForest")
-#  Random Forest feature importance to sort feature importance
-rf <-randomForest(deaths ~ . , data=top96USDeathFeatures , importance=TRUE,ntree=1000)
-#Evaluate variable importance
-imp = importance(rf, type=1)
-imp <- data.frame(predictors=rownames(imp),imp)
-# Order the predictor levels by importance
-sorted = imp
-sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
-sorted
-write.csv(sorted, file = "sortedFeatureImportanceRandomForest-Deaths.csv", row.names = TRUE)
-
-rf <-randomForest(confirmed_cases ~ . , data=top84USCovidFeatures , importance=TRUE,ntree=1000)
-imp = importance(rf, type=1)
-imp <- data.frame(predictors=rownames(imp),imp)
-sorted = imp
-sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
-sorted
-write.csv(sorted, file = "sortedFeatureImportanceRandomForest-Covid.csv", row.names = TRUE)
-
-#------------------------------------------------------------------
-#Top Features for Death and Covid
-#--------------------------------------------------------------------
-topDeathFeatures = dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,
-high_school_diploma,high_school_including_ged,male_45_64_high_school,poverty,less_than_high_school_graduate,income_10000_14999,
-children_in_single_female_hh,households_public_asst_or_food_stamps,commute_60_more_mins,female_75_to_79,not_in_labor_force,
-female_80_to_84,not_hispanic_pop,income_15000_19999,dwellings_2_units,other_race_pop,commute_90_more_mins,
-one_parent_families_with_young_children,rent_over_50_percent)
-
-topCovidFeatures = dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, confirmed_cases,
- father_one_parent_families_with_young_children,in_grades_1_to_4,children, male_5_to_9, female_under_5, families_with_young_children,
-male_under_5, hispanic_male_45_54,high_school_including_ged, high_school_diploma,female_15_to_17, in_grades_5_to_8,female_5_to_9,
-in_grades_9_to_12, occupation_sales_office, male_10_to_14, female_10_to_14,sales_office_employed, in_school, employed_retail_trade)
+death_set2 = dplyr::select(cases_orig, -county_fips_code, -state_fips_code, -geo_id, -state, -date, -gini_index, -do_date, -county_name, -confirmed_cases)
+covid_set2 = dplyr::select(cases_orig, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -do_date, -county_name, -deaths)
 
 #------------------------------------------------------------------
 #Now look at deaths as a percentage of population or deaths per 1000
 #--------------------------------------------------------------------
-death_set2 = death_set
-covid_set2 = covid_set
-
-death_set2$deathsP1000 = death_set2$deaths/(death_set2$total_pop *10000)
-covid_set2$casesP1000= covid_set2$confirmed_cases/(covid_set2$total_pop*10000)
+death_set2$deathsPH1000 = death_set2$deaths/(death_set2$total_pop *100000)
+covid_set2$casesPH1000= covid_set2$confirmed_cases/(covid_set2$total_pop*100000)
 
 death_set2 = dplyr::select(death_set2, -deaths)
-US_death1000_weights <- death_set2 %>% chi.squared(deathsP1000 ~ ., data = .) %>%
+US_deathH1000_weights <- death_set2 %>% chi.squared(deathsPH1000 ~ ., data = .) %>%
   as_tibble(rownames = "feature") %>%
   arrange(desc(attr_importance))
-US_death1000_weights
-write.table(US_death1000_weights, file="chisquare_US_death10000_weights.csv",sep = ",")
+US_deathH1000_weights
+write.table(US_deathH1000_weights, file="chisquare_US_deathH10000_weights.csv",sep = ",")
 
 covid_set2 = dplyr::select(covid_set2, -confirmed_cases)
-US_covid1000_weights <- covid_set2 %>% chi.squared(casesP1000 ~ ., data = .) %>%
+US_covidH1000_weights <- covid_set2 %>% chi.squared(casesPH1000 ~ ., data = .) %>%
   as_tibble(rownames = "feature") %>%
   arrange(desc(attr_importance))
-US_covid1000_weights
-write.table(US_covid1000_weights, file="chisquare_US_covid10000_weights.csv",sep = ",")
+US_covidH1000_weights
+write.table(US_covidH1000_weights, file="chisquare_US_covidH10000_weights.csv",sep = ",")
 
-cfs_US_death1000_features= death_set2 %>%cfs(deathsP1000 ~ ., data = .)
-cfs_US_death1000_features
-cfs_US_covid1000_features=covid_set2 %>%cfs(casesP1000 ~ ., data = .)
-cfs_US_covid1000_features
+cfs_US_deathH1000_features= death_set2 %>%cfs(deathsPH1000 ~ ., data = .)
+cfs_US_deathH1000_features
+#[1] "amerindian_pop"                  "commuters_by_subway_or_elevated"
+cfs_US_covidH1000_features=covid_set2 %>%cfs(casesPH1000 ~ ., data = .)
+cfs_US_covidH1000_features
+#"amerindian_pop"
 
-top82USDeath1000Features =dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,total_pop,
-amerindian_pop,commuters_by_subway_or_elevated,owner_occupied_housing_units_lower_value_quartile,
-owner_occupied_housing_units_upper_value_quartile,owner_occupied_housing_units_median_value,walked_to_work,
-dwellings_10_to_19_units,median_rent,vacant_housing_units_for_sale,income_15000_19999,
-worked_at_home,female_female_households,renter_occupied_housing_units_paying_cash_median_gross_rent,
-father_one_parent_families_with_young_children,father_in_labor_force_one_parent_families_with_young_children,
-commute_35_44_mins,commute_35_39_mins,rent_10_to_15_percent,income_100000_124999,white_pop,white_male_55_64,graduate_professional_degree,income_150000_199999,
-male_45_64_bachelors_degree,male_45_64_some_college,amerindian_pop,three_cars,
-less_one_year_college,mortgaged_housing_units,bachelors_degree_or_higher_25_64,employed_science_management_admin_waste,
-bachelors_degree_2,bachelors_degree,some_college_and_associates_degree,masters_degree,commute_25_29_mins,employed_construction,commute_40_44_mins,four_more_cars,
-employed_arts_entertainment_recreation_accommodation_food,male_45_64_graduate_degree,income_125000_149999,white_including_hispanic,employed_pop,less_than_high_school_graduate,
-income_75000_99999,workers_16_and_over,commuters_by_car_truck_van,male_male_households,
-armed_forces,commuters_16_over,income_60000_74999,commute_30_34_mins,management_business_sci_arts_employed,occupation_management_arts,
-not_hispanic_pop,commuters_drove_alone,male_45_64_associates_degree,associates_degree,pop_in_labor_force,two_parents_in_labor_force_families_with_young_children,
-other_race_pop,civilian_labor_force,employed_wholesale_trade,male_55_to_59,employed_finance_insurance_real_estate,
-employed_information,occupation_sales_office,sales_office_employed,different_house_year_ago_different_city,
-median_income,employed_other_services_not_public_admin,two_cars,one_year_more_college,million_dollar_housing_units,
-dwellings_1_units_detached,income_less_10000,male_60_61,poverty,male_40_to_44,commuters_by_carpool,income_50000_59999,occupation_natural_resources_construction_maintenance)
+topUSDeathH1000Features =dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,total_pop,
+amerindian_pop,commuters_by_subway_or_elevated,
+owner_occupied_housing_units_lower_value_quartile,owner_occupied_housing_units_upper_value_quartile,owner_occupied_housing_units_median_value,
+walked_to_work,dwellings_10_to_19_units,median_rent,vacant_housing_units_for_sale,income_15000_19999,worked_at_home,female_female_households,
+renter_occupied_housing_units_paying_cash_median_gross_rent,father_one_parent_families_with_young_children,father_in_labor_force_one_parent_families_with_young_children,
+commute_35_44_mins,commute_35_39_mins,rent_10_to_15_percent,income_100000_124999,white_pop,white_male_55_64,graduate_professional_degree,
+income_150000_199999,male_45_64_bachelors_degree,male_45_64_some_college,amerindian_pop,three_cars,less_one_year_college,mortgaged_housing_units,
+bachelors_degree_or_higher_25_64,employed_science_management_admin_waste,bachelors_degree_2,bachelors_degree,some_college_and_associates_degree,
+masters_degree,commute_25_29_mins,employed_construction,commute_40_44_mins,four_more_cars,employed_arts_entertainment_recreation_accommodation_food,
+male_45_64_graduate_degree,income_125000_149999,white_including_hispanic,employed_pop,less_than_high_school_graduate,income_75000_99999,
+workers_16_and_over,commuters_by_car_truck_van,male_male_households,armed_forces,commuters_16_over,income_60000_74999,commute_30_34_mins,
+management_business_sci_arts_employed,occupation_management_arts,not_hispanic_pop,commuters_drove_alone,male_45_64_associates_degree,
+associates_degree,pop_in_labor_force,two_parents_in_labor_force_families_with_young_children,other_race_pop,civilian_labor_force,employed_wholesale_trade,
+male_55_to_59,employed_finance_insurance_real_estate,employed_information,occupation_sales_office,sales_office_employed,different_house_year_ago_different_city,
+median_income,employed_other_services_not_public_admin,two_cars,one_year_more_college,million_dollar_housing_units,dwellings_1_units_detached,income_less_10000,
+male_60_61,poverty,male_40_to_44,commuters_by_carpool,income_50000_59999,occupation_natural_resources_construction_maintenance)
+
+topUSDeathH1000Features$deathsPH1000 = topUSDeathH1000Features$deaths/(topUSDeathH1000Features$total_pop*100000)
 
 
-top82USDeath1000Features$deathsP1000 = top82USDeath1000Features$deaths/(top82USDeath1000Features$total_pop*10000)
-
-
-top83USCovid1000Features  =dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, confirmed_cases,total_pop,
-amerindian_pop,owner_occupied_housing_units_upper_value_quartile,owner_occupied_housing_units_median_value,owner_occupied_housing_units_lower_value_quartile,
+topUSCovidH1000Features  =dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, confirmed_cases,total_pop,
+amerindian_pop,
+owner_occupied_housing_units_upper_value_quartile,owner_occupied_housing_units_median_value,owner_occupied_housing_units_lower_value_quartile,
 renter_occupied_housing_units_paying_cash_median_gross_rent,median_age,median_rent,percent_income_spent_on_rent,
-vacant_housing_units,income_per_capita,employed_agriculture_forestry_fishing_hunting_mining,
-commuters_by_subway_or_elevated,commute_less_10_mins,million_dollar_housing_units,median_income,
-vacant_housing_units_for_sale,two_parents_in_labor_force_families_with_young_children,commute_30_34_mins,
-commute_5_9_mins,commute_45_59_mins,commuters_by_public_transportation,commute_60_more_mins,
-walked_to_work,employed_manufacturing,employed_wholesale_trade,different_house_year_ago_same_city,
-worked_at_home,commute_90_more_mins,households_retirement_income,group_quarters,commute_35_39_mins,housing_built_1939_or_earlier,
-employed_finance_insurance_real_estate,two_parent_families_with_young_children,white_male_45_54,commute_35_44_mins,
-black_including_hispanic,masters_degree,white_male_55_64,black_pop,male_65_to_66,male_70_to_74,female_65_to_66,
-white_pop,commute_25_29_mins,in_grades_5_to_8,three_cars,female_85_and_over,
-commuters_drove_alone,dwellings_1_units_attached,commute_40_44_mins,
-commuters_by_bus,black_male_45_54,commute_20_24_mins,male_45_64_graduate_degree,black_male_55_64,aggregate_travel_time_to_work,
-employed_education_health_social,employed_transportation_warehousing_utilities,rent_under_10_percent,
-male_5_to_9,employed_science_management_admin_waste,graduate_professional_degree,male_22_to_24,male_75_to_79,
-male_male_households,occupation_production_transportation_material,female_62_to_64,
-less_than_high_school_graduate,commute_60_89_mins,female_70_to_74,
-mobile_homes,management_business_sci_arts_employed,occupation_management_arts,male_under_5,mortgaged_housing_units,female_60_to_61,
-employed_other_services_not_public_admin,female_80_to_84,income_200000_or_more,income_45000_49999,occupation_natural_resources_construction_maintenance)
+vacant_housing_units,income_per_capita,employed_agriculture_forestry_fishing_hunting_mining,commuters_by_subway_or_elevated,commute_less_10_mins,
+million_dollar_housing_units,median_income,vacant_housing_units_for_sale,two_parents_in_labor_force_families_with_young_children,commute_30_34_mins,
+commute_5_9_mins,commute_45_59_mins,commuters_by_public_transportation,commute_60_more_mins,walked_to_work,employed_manufacturing,
+employed_wholesale_trade,different_house_year_ago_same_city,worked_at_home,commute_90_more_mins,households_retirement_income,group_quarters,
+commute_35_39_mins,housing_built_1939_or_earlier,employed_finance_insurance_real_estate,two_parent_families_with_young_children,
+white_male_45_54,commute_35_44_mins,black_including_hispanic,masters_degree,white_male_55_64,black_pop,male_65_to_66,
+male_70_to_74,female_65_to_66,white_pop,commute_25_29_mins,in_grades_5_to_8,three_cars,female_85_and_over,commuters_drove_alone,
+dwellings_1_units_attached,commute_40_44_mins,commuters_by_bus,black_male_45_54,commute_20_24_mins,male_45_64_graduate_degree,black_male_55_64,
+aggregate_travel_time_to_work,employed_education_health_social,employed_transportation_warehousing_utilities,rent_under_10_percent,male_5_to_9,employed_science_management_admin_waste,
+graduate_professional_degree,male_22_to_24,male_75_to_79,male_male_households,occupation_production_transportation_material,female_62_to_64,
+less_than_high_school_graduate,commute_60_89_mins,female_70_to_74,mobile_homes,management_business_sci_arts_employed,occupation_management_arts,male_under_5,
+mortgaged_housing_units,female_60_to_61,employed_other_services_not_public_admin,female_80_to_84,income_200000_or_more,income_45000_49999)
 
-top83USCovid1000Features$casesP1000= top83USCovid1000Features$confirmed_cases/(top83USCovid1000Features$total_pop*10000)
+topUSCovidH1000Features$casesPH1000= topUSCovidH1000Features$confirmed_cases/(topUSCovidH1000Features$total_pop*100000)
 
 
 #  Random Forest feature importance to sort feature importance
-rf <-randomForest(deathsP1000 ~ . , 
-                  data=dplyr::select(top82USDeath1000Features, -deaths, -county_fips_code, -geo_id,
+rf <-randomForest(deathsPH1000 ~ . , 
+                  data=dplyr::select(topUSDeathH1000Features, -deaths, -county_fips_code, -geo_id,
                                      -state_fips_code,-state,-date,-county_name,total_pop) ,
                   importance=TRUE,ntree=1000, na.action=na.exclude)
 #Evaluate variable importance
@@ -454,10 +339,10 @@ imp <- data.frame(predictors=rownames(imp),imp)
 sorted = imp
 sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
 sorted
-write.csv(sorted, file = "sortedFeatureImportanceRandomForest-10000Deaths.csv", row.names = TRUE)
+write.csv(sorted, file = "sortedFeatureImportanceRandomForest-H1000Deaths.csv", row.names = TRUE)
 
-rf <-randomForest(casesP1000 ~ . , 
-                  data=dplyr::select(top83USCovid1000Features, -confirmed_cases, -county_fips_code, -geo_id,
+rf <-randomForest(casesPH1000 ~ . , 
+                  data=dplyr::select(topUSCovidH1000Features, -confirmed_cases, -county_fips_code, -geo_id,
                                     -state_fips_code,-state,-date,-county_name,total_pop) ,
                   importance=TRUE,ntree=1000,na.action=na.exclude)
 imp = importance(rf, type=1)
@@ -465,33 +350,30 @@ imp <- data.frame(predictors=rownames(imp),imp)
 sorted = imp
 sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
 sorted
-write.csv(sorted, file = "sortedFeatureImportanceRandomForest-10000Covid.csv", row.names = TRUE)
+write.csv(sorted, file = "sortedFeatureImportanceRandomForest-H1000Covid.csv", row.names = TRUE)
 
 #------------------------------------------------------------------
-#Top Features for Death and Covid per 10000? (need to recheck after update)
+#Top 25 Features for Death and Covid per 100000 after Random Forest
 #--------------------------------------------------------------------
-## I eliminated these that were in top male_45_64_bachelors_degrthree_cars,male_45_64_some_collegeother_race_pop
-## not_hispanic_popemployed_finance_insurance_real_estate,white_male_55_64employed_other_services_not_public_admin
-##other_race_popnot_hispanic_popwhite_including_hispanic
-# I also include tho pop, state and other features you may need for graphs but not for models
-topDeathP1000Features=dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,total_pop,
-owner_occupied_housing_units_lower_value_quartile, white_pop,amerindian_pop,
-owner_occupied_housing_units_upper_value_quartile,owner_occupied_housing_units_median_value,
-four_more_cars,worked_at_home,less_than_high_school_graduate,different_house_year_ago_different_city,
-walked_to_work,median_income,employed_wholesale_trade,commute_35_39_mins,
-two_parents_in_labor_force_families_with_young_children,income_15000_19999,income_125000_149999,
-commute_25_29_mins,poverty,armed_forces,father_one_parent_families_with_young_children,
-occupation_natural_resources_construction_maintenance)
 
-# For covid I eliminated owner_occupied_housing_units_median_value,vacant_housing_units,
-## owner_occupied_housing_units_upper_value_quartile, black_pop,black_male_55_64,black_male_55_64
-# I also include tho pop, state and other features you may need for graphs but not for models
-topCovidP1000Features=dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,total_pop,
- median_age, percent_income_spent_on_rent,mobile_homes, income_per_capita,  group_quarters,
- walked_to_work, less_than_high_school_graduate,median_rent, median_income,employed_wholesale_trade,  
- employed_manufacturing,occupation_production_transportation_material,employed_agriculture_forestry_fishing_hunting_mining,
- two_parents_in_labor_force_families_with_young_children,amerindian_pop,commute_less_10_mins,  black_including_hispanic, different_house_year_ago_same_city,commuters_by_subway_or_elevated,
- commute_90_more_mins, owner_occupied_housing_units_lower_value_quartile, male_male_households,commuters_by_public_transportation)                                   
+# I included the pop, state and other features you may need for graphs but not for models
+topDeathFeatures=dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,total_pop,
+  owner_occupied_housing_units_lower_value_quartile, owner_occupied_housing_units_median_value,white_pop,
+  owner_occupied_housing_units_upper_value_quartile, white_male_55_64,four_more_cars,commute_40_44_mins,
+  median_rent,less_than_high_school_graduate, worked_at_home,  not_hispanic_pop, different_house_year_ago_different_city,
+  commute_35_44_mins, male_60_61, poverty, employed_finance_insurance_real_estate,vacant_housing_units_for_sale,
+ dwellings_10_to_19_units, bachelors_degree,white_including_hispanic,  bachelors_degree_2, less_one_year_college,walked_to_work,
+ three_cars, two_parents_in_labor_force_families_with_young_children
+)
+
+# I included the pop, state and other features you may need for graphs but not for models
+topCovidFeatures=dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,total_pop,
+  median_age, vacant_housing_units, income_per_capita, group_quarters,median_rent, commute_less_10_mins,
+ owner_occupied_housing_units_upper_value_quartile, renter_occupied_housing_units_paying_cash_median_gross_rent,
+ owner_occupied_housing_units_lower_value_quartile,different_house_year_ago_same_city,  black_including_hispanic,
+owner_occupied_housing_units_median_value, households_retirement_income,commute_5_9_mins, male_22_to_24,
+  male_5_to_9, commute_35_44_mins,commute_45_59_mins, employed_finance_insurance_real_estate,white_male_45_54,
+  female_65_to_66, male_70_to_74, worked_at_home, income_45000_49999, male_under_5,commute_35_39_mins,commute_90_more_mins)                              
 
 #   End Feature Importance Analysis  ----------------------------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------------------------------------------------------------
@@ -524,7 +406,7 @@ topCovidP1000Features=dplyr::select(cases_orig, county_fips_code, geo_id, state_
 # Create confusion matrices to compare model performance
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#SEE topCovidP1000Features, topDeathP1000Features vs topCovidFeatures topDeathFeatures 
+#SEE  topCovidFeatures topDeathFeatures 
 
 
 
