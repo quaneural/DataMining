@@ -64,6 +64,27 @@ cases <- dbGetQuery(con,'
 cases_orig = cases
 #write.csv(cases_orig,file = "Project3Dataset.csv", row.names = TRUE)
 
+#Determine thresholds to match CDC
+cases_rescaled <- cases_orig$confirmed_cases/100000
+summary(cases_rescaled)
+
+# Min.      1st Qu.   Median    Mean      3rd Qu.  Max. 
+# 0.000000  0.009182  0.022125  0.087984  0.057582 11.475410 
+
+# -> Thresholds for cases as compared to CDC transmissions captured on 4/27 are 0.009182, 0.022125, 0.057582
+
+# Cases' Classes: low < 0.009182 <= moderate < 0.022125 <= substantial < 0.057582 <= high
+
+deaths_rescaled <- cases_orig$deaths/100000
+summary(deaths_rescaled)
+
+# Min.     1st Qu.  Median   Mean     3rd Qu.  Max. 
+# 0.000000 0.000160 0.000405 0.001566 0.000990 0.199040 
+
+# -> Thresholds for deaths as compared to CDC are 0.000160, 0.000405, 0.000990
+
+# Deaths' Classes: low < 0.000160 <= moderate < 0.000405 <= substantial < 0.000990 <= high
+
 #TOO BIG TO DOWNLOAD??
 mobility <- dbGetQuery(con,"
  SELECT * 
