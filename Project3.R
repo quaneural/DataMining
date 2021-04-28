@@ -59,7 +59,8 @@ cases <- dbGetQuery(con,'
   FROM `bigquery-public-data.covid19_usafacts.summary` covid19
   JOIN `bigquery-public-data.census_bureau_acs.county_2017_5yr` acs
   ON covid19.county_fips_code = acs.geo_id
-  WHERE date = DATE_SUB(CURRENT_DATE(), INTERVAL 7 day')
+  WHERE date = DATE_SUB(CURRENT_DATE(), INTERVAL 7 day)
+')
 
 cases_orig = cases
 #write.csv(cases_orig,file = "Project3Dataset.csv", row.names = TRUE)
@@ -68,22 +69,22 @@ cases_orig = cases
 cases_rescaled <- cases_orig$confirmed_cases/100000
 summary(cases_rescaled)
 
-# Min.      1st Qu.   Median    Mean      3rd Qu.  Max. 
-# 0.000000  0.009182  0.022125  0.087984  0.057582 11.475410 
+# Min.     1st Qu.  Median   Mean     3rd Qu. Max. 
+# 0.00000  0.01026  0.02465  0.09931  0.06346 11.89256
 
-# -> Thresholds for cases as compared to CDC transmissions captured on 4/27 are 0.009182, 0.022125, 0.057582
+# -> Thresholds for cases as compared to CDC transmissions captured on 4/28 are 0.01026, 0.02465, 0.06346
 
-# Cases' Classes: low < 0.009182 <= moderate < 0.022125 <= substantial < 0.057582 <= high
+# Cases' Classes: low < 0.01026 <= moderate < 0.02465 <= substantial < 0.06346 <= high
 
 deaths_rescaled <- cases_orig$deaths/100000
 summary(deaths_rescaled)
 
 # Min.     1st Qu.  Median   Mean     3rd Qu.  Max. 
-# 0.000000 0.000160 0.000405 0.001566 0.000990 0.199040 
+# 0.000000 0.000190 0.000480 0.001787 0.001118 0.236940 
 
-# -> Thresholds for deaths as compared to CDC are 0.000160, 0.000405, 0.000990
+# -> Thresholds for deaths as compared to CDC captured on 4/28 are 0.000190, 0.000480, 0.001118
 
-# Deaths' Classes: low < 0.000160 <= moderate < 0.000405 <= substantial < 0.000990 <= high
+# Deaths' Classes: low < 0.000190 <= moderate < 0.000480 <= substantial < 0.001118 <= high
 
 #TOO BIG TO DOWNLOAD??
 mobility <- dbGetQuery(con,"
