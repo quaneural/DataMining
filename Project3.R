@@ -45,6 +45,15 @@ library("dplyr")
 library("DBI")
 library("relaimpo")
 library("randomForest")
+library(dplyr)
+# CART
+library(rpart)
+library(rpart.plot)
+# sample.split
+library(caTools)
+# Cross Validation
+library(caret)
+
 
 # Establish connection to bigrquery database and query data
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -72,9 +81,10 @@ summary(cases_rescaled)
 # Min.     1st Qu.  Median   Mean     3rd Qu. Max. 
 # 0.00000  0.01026  0.02465  0.09931  0.06346 11.89256
 
+
 # -> Thresholds for cases as compared to CDC transmissions captured on 4/28 are 0.01026, 0.02465, 0.06346
 
-# Cases' Classes: low < 0.01026 <= moderate < 0.02465 <= substantial < 0.06346 <= high
+# Cases' Classes: low < 0.01026 <= moderate < 0.01026 <= substantial < 0.06346 <= high
 
 deaths_rescaled <- cases_orig$deaths/100000
 summary(deaths_rescaled)
@@ -293,14 +303,14 @@ US_deathH1000_weights <- death_set2 %>% chi.squared(deathsPH1000 ~ ., data = .) 
   as_tibble(rownames = "feature") %>%
   arrange(desc(attr_importance))
 US_deathH1000_weights
-write.table(US_deathH1000_weights, file="chisquare_US_deathH10000_weights.csv",sep = ",")
+#write.table(US_deathH1000_weights, file="chisquare_US_deathH10000_weights.csv",sep = ",")
 
 covid_set2 = dplyr::select(covid_set2, -confirmed_cases)
 US_covidH1000_weights <- covid_set2 %>% chi.squared(casesPH1000 ~ ., data = .) %>%
   as_tibble(rownames = "feature") %>%
   arrange(desc(attr_importance))
 US_covidH1000_weights
-write.table(US_covidH1000_weights, file="chisquare_US_covidH10000_weights.csv",sep = ",")
+#write.table(US_covidH1000_weights, file="chisquare_US_covidH10000_weights.csv",sep = ",")
 
 cfs_US_deathH1000_features= death_set2 %>%cfs(deathsPH1000 ~ ., data = .)
 cfs_US_deathH1000_features
@@ -361,7 +371,7 @@ imp <- data.frame(predictors=rownames(imp),imp)
 sorted = imp
 sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
 sorted
-write.csv(sorted, file = "sortedFeatureImportanceRandomForest-H1000Deaths.csv", row.names = TRUE)
+#write.csv(sorted, file = "sortedFeatureImportanceRandomForest-H1000Deaths.csv", row.names = TRUE)
 
 rf <-randomForest(casesPH1000 ~ . , 
                   data=dplyr::select(topUSCovidH1000Features, -confirmed_cases, -county_fips_code, -geo_id,
@@ -372,7 +382,7 @@ imp <- data.frame(predictors=rownames(imp),imp)
 sorted = imp
 sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
 sorted
-write.csv(sorted, file = "sortedFeatureImportanceRandomForest-H1000Covid.csv", row.names = TRUE)
+#write.csv(sorted, file = "sortedFeatureImportanceRandomForest-H1000Covid.csv", row.names = TRUE)
 
 #------------------------------------------------------------------
 #Top 25 Features for Death and Covid per 100000 after Random Forest
@@ -388,7 +398,7 @@ topDeathFeatures=dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_
  three_cars, two_parents_in_labor_force_families_with_young_children)
 
 # I included the pop, state and other features you may need for graphs but not for models
-topCovidFeatures=dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, deaths,total_pop,
+topCovidFeatures=dplyr::select(cases_orig, county_fips_code, geo_id, state_fips_code, state, date, county_name, confirmed_cases,total_pop,
   median_age, vacant_housing_units, income_per_capita, group_quarters,median_rent, commute_less_10_mins,
  owner_occupied_housing_units_upper_value_quartile, renter_occupied_housing_units_paying_cash_median_gross_rent,
  owner_occupied_housing_units_lower_value_quartile,different_house_year_ago_same_city,  black_including_hispanic,
@@ -427,13 +437,86 @@ owner_occupied_housing_units_median_value, households_retirement_income,commute_
 # Create confusion matrices to compare model performance
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#SEE  topCovidFeatures topDeathFeatures 
+#SEE  topCovidFeatures topDeathFeatures
+
+topDeathFeatures$deathsPH1000 = topDeathFeatures$deaths/(topDeathFeatures$total_pop*100000)
+topCovidFeatures$casesPH1000= topCovidFeatures$confirmed_cases/(topCovidFeatures$total_pop*100000)
+
+summary(topDeathFeatures$deathsPH1000 )
+#     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+#0.000e+00 1.171e-08 1.805e-08 1.938e-08 2.522e-08 8.333e-08 
+
+summary(topCovidFeatures$casesPH1000)
+#Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+#0.000e+00 7.891e-07 9.677e-07 9.667e-07 1.139e-06 6.281e-06 
+
+# Add Covid and Death Labels
+topDeathFeatures["Class"] ="MEDIUM"
+topDeathFeatures$Class[(topDeathFeatures$deathsPH1000 <= 1.171e-08)] = "LOW"
+topDeathFeatures$Class[(topDeathFeatures$deathsPH1000 >2.522e-08)] = "HIGH"
+str(topDeathFeatures)
+table(topDeathFeatures$Class)
+
+topCovidFeatures["Class"] ="MEDIUM"
+topCovidFeatures$Class[topCovidFeatures$casesPH1000 <= 7.891e-07] = "LOW"
+topCovidFeatures$Class[topCovidFeatures$casesPH1000 > 1.139e-06] = "HIGH"
+str(topCovidFeatures)
+table(topCovidFeatures$Class)
+
+#############################################################################
+#######   LOGISTIC REGRESSION Deaths#########################################
+#############################################################################
+#====================================================================
+# Split train and test data sets
+set.seed(100)
+spl = sample.split(topDeathFeatures$Class, SplitRatio = 0.70)
+deathDataTrain = subset(topDeathFeatures, spl == TRUE)
+deathDataTest = subset(topDeathFeatures, spl == FALSE)
+table(deathDataTrain$Class)
+table(deathDataTest$Class)
+#Note Data is still unscaled at this point
+#REMOVE DEATHS and other features we do not want to train on
+topDeathFeatures2= dplyr::select(topDeathFeatures, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+topDeathFeaturesScaled = topDeathFeatures2 %>% dplyr::mutate_if(is.numeric, scale)
+# Training the multinomial model
+multinomDeathModel <- multinom(Class ~., data = topDeathFeaturesScaled)
+# Checking the model
+summary(multinomDeathModel)
+sort(coefficients(multinomDeathModel))
+imp =caret::varImp(multinomDeathModel)
+imp <- as.data.frame(imp)
+imp <- data.frame(overall = imp$Overall,
+                  names   = rownames(imp))
+imp[order(imp$overall,decreasing = T),]
 
 
 
 
-
-
+#############################################################################
+#######   LOGISTIC REGRESSION CASESs#########################################
+#############################################################################
+#====================================================================
+# Split train and test data sets
+set.seed(100)
+spl = sample.split(topCovidFeatures$Class, SplitRatio = 0.70)
+CovidDataTrain = subset(topCovidFeatures, spl == TRUE)
+CovidDataTest = subset(topCovidFeatures, spl == FALSE)
+table(CovidDataTrain$Class)
+table(CovidDataTest$Class)
+#Note Data is still unscaled at this point
+#REMOVE confirmed cases and other features we do not want to train on
+topCovidFeatures2= dplyr::select(topCovidFeatures, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+topCovidFeaturesScaled = topCovidFeatures2 %>% dplyr::mutate_if(is.numeric, scale)
+# Training the multinomial model
+multinomCovidModel <- multinom(Class ~., data = topCovidFeaturesScaled)
+# Checking the model
+summary(multinomCovidModel)
+sort(coefficients(multinomCovidModel))
+imp =caret::varImp(multinomCovidModel)
+imp <- as.data.frame(imp)
+imp <- data.frame(overall = imp$Overall,
+                  names   = rownames(imp))
+imp[order(imp$overall,decreasing = T),]
 
 
 
