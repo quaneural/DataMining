@@ -443,7 +443,9 @@ owner_occupied_housing_units_median_value, households_retirement_income,commute_
 #SEE  topCovidFeatures topDeathFeatures
 
 topDeathFeatures$deathsPH1000 = topDeathFeatures$deaths/(topDeathFeatures$total_pop*100000)
+topDeathFeatures$deathsPH2 = topDeathFeatures$deaths/(100000)#similar to cdc
 topCovidFeatures$casesPH1000= topCovidFeatures$confirmed_cases/(topCovidFeatures$total_pop*100000)
+topCovidFeatures$casesPH2= topCovidFeatures$confirmed_cases/(100000)#similar to cdc
 
 summary(topDeathFeatures$deathsPH1000 )
 #     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
@@ -453,13 +455,19 @@ summary(topCovidFeatures$casesPH1000)
 #Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
 #0.000e+00 7.891e-07 9.677e-07 9.667e-07 1.139e-06 6.281e-06 
 
+#take a look at our values
+topCovidFeatures$confirmed_cases
+topCovidFeatures$casesPH1000
+topCovidFeatures$casesPH2[(topCovidFeatures$casesPH2>9)]
+#[1] 11.8953
+#only one county - do we need to aggregate this data?
+
 # Add Covid and Death Labels
 topDeathFeatures["Class"] ="MEDIUM"
 topDeathFeatures$Class[(topDeathFeatures$deathsPH1000 <= 1.171e-08)] = "LOW"
 topDeathFeatures$Class[(topDeathFeatures$deathsPH1000 >2.522e-08)] = "HIGH"
 str(topDeathFeatures)
 table(topDeathFeatures$Class)
-
 topCovidFeatures["Class"] ="MEDIUM"
 topCovidFeatures$Class[topCovidFeatures$casesPH1000 <= 7.891e-07] = "LOW"
 topCovidFeatures$Class[topCovidFeatures$casesPH1000 > 1.139e-06] = "HIGH"
