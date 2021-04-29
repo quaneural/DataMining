@@ -53,6 +53,9 @@ library(rpart.plot)
 library(caTools)
 # Cross Validation
 library(caret)
+library(e1071)
+# ROC Curve
+library(ROCR)
 
 
 # Establish connection to bigrquery database and query data
@@ -466,8 +469,6 @@ table(topCovidFeatures$Class)
 #############################################################################
 #######   LOGISTIC REGRESSION Deaths#########################################
 #############################################################################
-#====================================================================
-# Split train and test data sets
 set.seed(100)
 spl = sample.split(topDeathFeatures$Class, SplitRatio = 0.70)
 deathDataTrain = subset(topDeathFeatures, spl == TRUE)
@@ -476,10 +477,10 @@ table(deathDataTrain$Class)
 table(deathDataTest$Class)
 #Note Data is still unscaled at this point
 #REMOVE DEATHS and other features we do not want to train on
-topDeathFeatures2= dplyr::select(topDeathFeatures, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
-topDeathFeaturesScaled = topDeathFeatures2 %>% dplyr::mutate_if(is.numeric, scale)
+deathDataTrain2= dplyr::select(deathDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+deathDataTrainScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 # Training the multinomial model
-multinomDeathModel <- multinom(Class ~., data = topDeathFeaturesScaled)
+multinomDeathModel <- multinom(Class ~., data = deathDataTrainScaled)
 # Checking the model
 summary(multinomDeathModel)
 sort(coefficients(multinomDeathModel))
@@ -489,14 +490,23 @@ imp <- data.frame(overall = imp$Overall,
                   names   = rownames(imp))
 imp[order(imp$overall,decreasing = T),]
 
+###<Bridget Note> Do we want to retrain with fewer features????
+#====================================================================
+# Evaluate performance of model on test data set - most important
+#====================================================================
+#REMOVE DEATHS and other features we do not want to train on
+deathDataTest2=dplyr::select(deathDataTest, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+deathDataTestScaled=deathDataTest2 %>% dplyr::mutate_if(is.numeric, scale)
+PredictCV = predict(multinomDeathModel, newdata = deathDataTestScaled, type = "class",  na.action=na.pass)
+#Confusion Matrix
+tab1 = table(deathDataTestScaled$Class, PredictCV)
+tab1
 
 
 
 #############################################################################
 #######   LOGISTIC REGRESSION CASESs#########################################
 #############################################################################
-#====================================================================
-# Split train and test data sets
 set.seed(100)
 spl = sample.split(topCovidFeatures$Class, SplitRatio = 0.70)
 CovidDataTrain = subset(topCovidFeatures, spl == TRUE)
@@ -505,10 +515,10 @@ table(CovidDataTrain$Class)
 table(CovidDataTest$Class)
 #Note Data is still unscaled at this point
 #REMOVE confirmed cases and other features we do not want to train on
-topCovidFeatures2= dplyr::select(topCovidFeatures, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
-topCovidFeaturesScaled = topCovidFeatures2 %>% dplyr::mutate_if(is.numeric, scale)
+CovidDataTrain2= dplyr::select(CovidDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 # Training the multinomial model
-multinomCovidModel <- multinom(Class ~., data = topCovidFeaturesScaled)
+multinomCovidModel <- multinom(Class ~., data = CovidDataTrainScaled)
 # Checking the model
 summary(multinomCovidModel)
 sort(coefficients(multinomCovidModel))
@@ -518,6 +528,16 @@ imp <- data.frame(overall = imp$Overall,
                   names   = rownames(imp))
 imp[order(imp$overall,decreasing = T),]
 
+#====================================================================
+# Evaluate performance of model on test data set - most important
+#====================================================================
+#REMOVE DEATHS and other features we do not want to train on
+CovidDataTest2=dplyr::select(CovidDataTest, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTestScaled=deathDataTest2 %>% dplyr::mutate_if(is.numeric, scale)
+PredictCV = predict(multinomDeathModel, newdata = CovidDataTestScaled, type = "class",  na.action=na.pass)
+#Confusion Matrix
+tab1 = table(CovidDataTestScaled$Class, PredictCV)
+tab1
 
 
 
