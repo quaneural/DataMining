@@ -533,15 +533,11 @@ imp[order(imp$overall,decreasing = T),]
 #====================================================================
 #REMOVE DEATHS and other features we do not want to train on
 CovidDataTest2=dplyr::select(CovidDataTest, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
-CovidDataTestScaled=deathDataTest2 %>% dplyr::mutate_if(is.numeric, scale)
-PredictCV = predict(multinomDeathModel, newdata = CovidDataTestScaled, type = "class",  na.action=na.pass)
+CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
+PredictCV = predict(multinomCovidModel, newdata = CovidDataTestScaled, type = "class",  na.action=na.pass)
 #Confusion Matrix
 tab1 = table(CovidDataTestScaled$Class, PredictCV)
 tab1
-
-
-
-
 
 
 
