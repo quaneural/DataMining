@@ -74,31 +74,41 @@ cases <- dbGetQuery(con,'
   WHERE CAST(date AS DATETIME) BETWEEN "2020-04-21" AND "2020-04-27"
 ')
 
+cases_orig <- cases
 
-cases_orig = cases
-#write.csv(cases_orig,file = "Project3Dataset.csv", row.names = TRUE)
+cases_first_day <- cases_orig %>% filter(date == '2020-04-22')
+cases_last_day <- cases_orig %>% filter(date == '2020-04-27')
+cases_one_day <- cases_orig %>% filter(date == '2020-04-27')
+
+#df <- cbind(cases_first_day$confirmed_cases,cases_last_day$confirmed_cases,cases_one_day$delta)
+#df <- as.data.frame(df)
+
+cases_one_day <- cases_one_day %>% mutate(delta = cases_last_day$confirmed_cases - cases_first_day$confirmed_cases)
+cases_one_day <- cases_one_day %>% filter(delta > 0)
+cases_normalized <- cases_one_day %>% mutate(cases_norm = cases_one_day$delta/total_pop*100000)
+summary(cases_normalized$cases_norm)
 
 #Determine thresholds to match CDC
-cases_rescaled <- cases_orig$confirmed_cases
-summary(cases_rescaled)
+plot(cases_normalized$cases_norm, xlim=c(1,1000), log='x', type="l", col="green", lwd=5)#, xlab="time", ylab="concentration")
 
-# Min.     1st Qu.  Median   Mean     3rd Qu. Max. 
-# 0.00000  0.01026  0.02465  0.09931  0.06346 11.89256
+# Cases' Classes: low < 200 <= moderate < 750 <= high
 
+deaths_first_day <- cases_orig %>% filter(date == '2020-04-22')
+deaths_last_day <- cases_orig %>% filter(date == '2020-04-27')
+deaths_one_day <- cases_orig %>% filter(date == '2020-04-27')
 
-# -> Thresholds for cases as compared to CDC transmissions captured on 4/28 are 0.01026, 0.02465, 0.06346
+#df <- cbind(deaths_first_day$deaths,cases_last_day$deaths,cases_one_day$delta)
+#df <- as.data.frame(df)
 
-# Cases' Classes: low < 0.01026 <= moderate < 0.01026 <= substantial < 0.06346 <= high
+deaths_one_day <- deaths_one_day %>% mutate(delta = deaths_last_day$deaths - deaths_first_day$deaths)
+deaths_one_day <- deaths_one_day %>% filter(delta > 0)
+deaths_normalized <- deaths_one_day %>% mutate(deaths_norm = deaths_one_day$delta/total_pop*100000)
+summary(deaths_normalized$deaths_norm)
 
-deaths_rescaled <- cases_orig$deaths/100000
-summary(deaths_rescaled)
+#Determine thresholds to match CDC
+plot(deaths_normalized$deaths_norm, xlim=c(1,300), log='x', type="l", col="green", lwd=5)#, xlab="time", ylab="concentration")
 
-# Min.     1st Qu.  Median   Mean     3rd Qu.  Max. 
-# 0.000000 0.000190 0.000480 0.001787 0.001118 0.236940 
-
-# -> Thresholds for deaths as compared to CDC captured on 4/28 are 0.000190, 0.000480, 0.001118
-
-# Deaths' Classes: low < 0.000190 <= moderate < 0.000480 <= substantial < 0.001118 <= high
+# Deaths' Classes: low < 5 <= moderate < 15 <= high
 
 #TOO BIG TO DOWNLOAD??
 mobility <- dbGetQuery(con,"
