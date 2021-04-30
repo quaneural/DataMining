@@ -67,18 +67,19 @@ con <- dbConnect(
 )
 
 cases <- dbGetQuery(con,'
- SELECT *
+  SELECT *
   FROM `bigquery-public-data.covid19_usafacts.summary` covid19
   JOIN `bigquery-public-data.census_bureau_acs.county_2017_5yr` acs
   ON covid19.county_fips_code = acs.geo_id
-  WHERE date = DATE_SUB(CURRENT_DATE(), INTERVAL 7 day)
+  WHERE CAST(date AS DATETIME) BETWEEN "2020-04-21" AND "2020-04-27"
 ')
+
 
 cases_orig = cases
 #write.csv(cases_orig,file = "Project3Dataset.csv", row.names = TRUE)
 
 #Determine thresholds to match CDC
-cases_rescaled <- cases_orig$confirmed_cases/100000
+cases_rescaled <- cases_orig$confirmed_cases
 summary(cases_rescaled)
 
 # Min.     1st Qu.  Median   Mean     3rd Qu. Max. 
