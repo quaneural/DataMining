@@ -46,6 +46,7 @@ library("DBI")
 library("relaimpo")
 library("randomForest")
 library("fuzzyjoin")
+library("data.table")
 library(dplyr)
 # CART
 library(rpart)
@@ -89,18 +90,12 @@ govt_response <- dbGetQuery(con,'
   WHERE country_name LIKE "United_States"
 ')
 
-# Joining cases query data with mobility query data with inital cleaning of merged dataframe "cases_mob" -> "cases_orig"
-mobility <- mobility %>% rename(county_name=sub_region_2)
 
-cases_mobility <- regex_full_join(cases, mobility, by='county_name')
-cases_mob <- cases_mobility[!is.na(cases_mobility$parks_percent_change_from_baseline), ]
-cases_mob <- cases_mob[!is.na(cases_mob$county_fips_code), ] 
+cases_orig <- cases
 
-cases_orig <- cases_mob
-
-cases_first_day <- cases_orig %>% filter(date == '2020-04-22')
-cases_last_day <- cases_orig %>% filter(date == '2020-04-27')
-cases_one_day <- cases_orig %>% filter(date == '2020-04-27')
+cases_first_day <- cases_orig %>% filter(date == '2020-04-22') 
+cases_last_day <- cases_orig %>% filter(date == '2020-04-27') 
+cases_one_day <- cases_orig %>% filter(date == '2020-04-27') 
 
 #df <- cbind(cases_first_day$confirmed_cases,cases_last_day$confirmed_cases,cases_one_day$delta)
 #df <- as.data.frame(df)
@@ -114,6 +109,17 @@ summary(cases_normalized$cases_norm)
 plot(cases_normalized$cases_norm, xlim=c(1,1000), log='x', type="l", col="green", lwd=5)#, xlab="time", ylab="concentration")
 
 # Cases' Classes: low < 200 <= moderate < 750 <= high
+
+# Joining cases_normalized data with mobility query data with inital cleaning of merged dataframe "cases_mob" -> "cases_orig"
+mob <- mobility %>% rename(county_fips_code=census_fips_code)
+
+# Number of counties in US is 3006 => 7 day report for US should have 15042 observables
+cases_mobility <- regex_full_join(cases_normalized, mob, by='county_fips_code')
+cases_mob <- cases_mobility[!is.na(cases_mobility$parks_percent_change_from_baseline), ]
+cases_mob <- cases_mob[!is.na(cases_mob$county_fips_code.x), ] 
+cases_mob <- cases_mob %>% rename(date=date.x)
+cases_mob <- setDT(cases_mob)[,(261:270) :=NULL]
+#cases_mob[,(249:258) :=NULL]
 
 deaths_first_day <- cases_orig %>% filter(date == '2020-04-22')
 deaths_last_day <- cases_orig %>% filter(date == '2020-04-27')
@@ -131,6 +137,17 @@ summary(deaths_normalized$deaths_norm)
 plot(deaths_normalized$deaths_norm, xlim=c(1,300), log='x', type="l", col="green", lwd=5)#, xlab="time", ylab="concentration")
 
 # Deaths' Classes: low < 5 <= moderate < 15 <= high
+
+# Joining cases_normalized data with mobility query data with inital cleaning of merged dataframe "cases_mob" -> "cases_orig"
+mob <- mobility %>% rename(county_fips_code=census_fips_code)
+
+# Number of counties in US is 3006 => 7 day report for US should have 15042 observables
+deaths_mobility <- regex_full_join(deaths_normalized, mob, by='county_fips_code')
+deaths_mob <- deaths_mobility[!is.na(deaths_mobility$parks_percent_change_from_baseline), ]
+deaths_mob <- deaths_mob[!is.na(deaths_mob$county_fips_code.x), ] 
+deaths_mob <- deaths_mob %>% rename(date=date.x)
+deaths_mob <- setDT(deaths_mob)[,(261:270) :=NULL]
+#deaths_mob[,(249:258) :=NULL]
 
 #NO COUNTY FIPS CODE or COUNTY NAME??
 str(govt_response)
