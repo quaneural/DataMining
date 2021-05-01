@@ -45,6 +45,7 @@ library("dplyr")
 library("DBI")
 library("relaimpo")
 library("randomForest")
+library("fuzzyjoin")
 library(dplyr)
 # CART
 library(rpart)
@@ -74,7 +75,28 @@ cases <- dbGetQuery(con,'
   WHERE CAST(date AS DATETIME) BETWEEN "2020-04-21" AND "2020-04-27"
 ')
 
-cases_orig <- cases
+# Changed query to match date range in cases query. Should be more manageable size.
+mobility <- dbGetQuery(con,'
+ SELECT * 
+  FROM `bigquery-public-data.covid19_google_mobility.mobility_report` 
+  WHERE country_region LIKE "United States" AND
+  CAST(date AS DATETIME) BETWEEN "2020-04-21" AND "2020-04-27"
+')
+
+govt_response <- dbGetQuery(con,'
+ SELECT * 
+  FROM `bigquery-public-data.covid19_govt_response.oxford_policy_tracker` 
+  WHERE country_name LIKE "United_States"
+')
+
+# Joining cases query data with mobility query data with inital cleaning of merged dataframe "cases_mob" -> "cases_orig"
+mobility <- mobility %>% rename(county_name=sub_region_2)
+
+cases_mobility <- regex_full_join(cases, mobility, by='county_name')
+cases_mob <- cases_mobility[!is.na(cases_mobility$parks_percent_change_from_baseline), ]
+cases_mob <- cases_mob[!is.na(cases_mob$county_fips_code), ] 
+
+cases_orig <- cases_mob
 
 cases_first_day <- cases_orig %>% filter(date == '2020-04-22')
 cases_last_day <- cases_orig %>% filter(date == '2020-04-27')
@@ -109,20 +131,6 @@ summary(deaths_normalized$deaths_norm)
 plot(deaths_normalized$deaths_norm, xlim=c(1,300), log='x', type="l", col="green", lwd=5)#, xlab="time", ylab="concentration")
 
 # Deaths' Classes: low < 5 <= moderate < 15 <= high
-
-#TOO BIG TO DOWNLOAD??
-mobility <- dbGetQuery(con,"
- SELECT * 
-  FROM `bigquery-public-data.covid19_google_mobility.mobility_report` 
-  WHERE country_region LIKE 'United States'
-")
-
-
-govt_response <- dbGetQuery(con,"
- SELECT * 
-  FROM `bigquery-public-data.covid19_govt_response.oxford_policy_tracker` 
-  WHERE country_name LIKE 'United_States'
-")
 
 #NO COUNTY FIPS CODE or COUNTY NAME??
 str(govt_response)
