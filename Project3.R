@@ -593,6 +593,128 @@ topCovidFeatures$Class[topCovidFeatures$casesPH1000 > 1.139e-06] = "HIGH"
 str(topCovidFeatures)
 table(topCovidFeatures$Class)
 
+
+#############################################################################
+#######   Logistic Regression Deaths   ##################################
+#############################################################################
+set.seed(100)
+spl = sample.split(topDeathFeatures$Class, SplitRatio = 0.70)
+deathDataTrain = subset(topDeathFeatures, spl == TRUE)
+deathDataTest = subset(topDeathFeatures, spl == FALSE)
+table(deathDataTrain$Class)
+table(deathDataTest$Class)
+
+#Note Data is still unscaled at this point
+#REMOVE DEATHS and other features we do not want to train on
+deathDataTrain2= dplyr::select(deathDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+deathDataTrainScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+
+deathDataTest2= dplyr::select(deathDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+deathDataTestScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+
+
+
+LogDeathsModel <- glm(as.factor(Class) ~ . , data = deathDataTrainScaled, family = "binomial")
+summary(LogDeathsModel)
+# predict(LogDeathsModel, deathDataTestScaled)
+pr <- predict(LogDeathsModel, deathDataTestScaled, type = "response")
+round(pr, 2)
+hist(pr, breaks=20)
+table(actual=deathDataTestScaled$Class, predicted=pr>.5)
+
+#############################################################################
+#######   Logistic Regression Cases   ##################################
+#############################################################################
+set.seed(100)
+spl = sample.split(topCovidFeatures$Class, SplitRatio = 0.70)
+CovidDataTrain = subset(topCovidFeatures, spl == TRUE)
+CovidDataTest = subset(topCovidFeatures, spl == FALSE)
+table(CovidDataTrain$Class)
+table(CovidDataTest$Class)
+
+#Note Data is still unscaled at this point
+#REMOVE DEATHS and other features we do not want to train on
+CovidDataTrain2= dplyr::select(deathDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+CovidDataTrainScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+
+CovidDataTest2= dplyr::select(CovidDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+CovidDataTestScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+
+
+
+LogCovidModel <- glm(as.factor(Class) ~ . , data = CovidDataTrainScaled, family = "binomial")
+summary(LogCovidModel)
+# predict(LogDeathsModel, deathDataTestScaled)
+pr <- predict(LogCovidModel, CovidDataTestScaled, type = "response")
+round(pr, 2)
+hist(pr, breaks=20)
+table(actual=CovidDataTestScaled$Class, predicted=pr>.5)
+
+
+
+#############################################################################
+#######   Decision Tree Deaths   ##################################
+#############################################################################
+set.seed(100)
+spl = sample.split(topDeathFeatures$Class, SplitRatio = 0.70)
+deathDataTrain = subset(topDeathFeatures, spl == TRUE)
+deathDataTest = subset(topDeathFeatures, spl == FALSE)
+table(deathDataTrain$Class)
+table(deathDataTest$Class)
+
+#Note Data is still unscaled at this point
+#REMOVE DEATHS and other features we do not want to train on
+deathDataTrain2= dplyr::select(deathDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+deathDataTrainScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+
+deathDataTest2= dplyr::select(deathDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+deathDataTestScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+
+
+na.exclude(deathDataTrainScaled$Class)
+train_index <-createFolds(deathDataTrainScaled$Class, k =10)
+ctreeFitDeath <- deathDataTrainScaled %>% train(Class ~ .,
+                                                method = "ctree",
+                                                data = .,
+                                                tuneLength = 5,
+                                                trControl = trainControl(method = "cv", indexOut = train_index))
+ctreeFitDeath
+dev.off()
+plot(ctreeFitDeath$finalModel)
+
+
+
+#############################################################################
+#######   Decision Tree Cases   ##################################
+#############################################################################
+set.seed(100)
+spl = sample.split(topCovidFeatures$Class, SplitRatio = 0.70)
+CovidDataTrain = subset(topDeathFeatures, spl == TRUE)
+CovidDataTest = subset(topDeathFeatures, spl == FALSE)
+table(CovidDataTrain$Class)
+table(CovidDataTest$Class)
+
+#Note Data is still unscaled at this point
+#REMOVE DEATHS and other features we do not want to train on
+CovidDataTrain2= dplyr::select(CovidDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+
+CovidDataTest2= dplyr::select(CovidDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+CovidDataTestScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+
+train_index <-createFolds(CovidDataTrainScaled$Class, k =10)
+ctreeFitCovid <- CovidDataTrainScaled %>% train(Class ~ .,
+                                                method = "ctree",
+                                                data = .,
+                                                tuneLength = 5,
+                                                trControl = trainControl(method = "cv", indexOut = train_index))
+ctreeFitCovid
+dev.off()
+plot(ctreeFit$finalModel)
+
+
+
+
 #############################################################################
 #######   Multinomial Naive Bayes Deaths   ##################################
 #############################################################################
@@ -673,34 +795,35 @@ tab1
 #######   NEAREST NEIGHBOR Deaths   #########################################
 #############################################################################
 #====================================================================
-#Note Data is still unscaled at this point
-#REMOVE DEATHS and other features we do not want to train on
-allDeathFeatures2= dplyr::select(deaths_normalized, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
-allDeathFeaturesScaled = allDeathFeatures2 %>% dplyr::mutate_if(is.numeric, scale)
-
 # Split train and test data sets
 set.seed(100)
-spl = sample.split(allDeathFeaturesScaled$Class, SplitRatio = 0.70)
-deathDataTrain = subset(allDeathFeaturesScaled, spl == TRUE)
-deathDataTest = subset(allDeathFeaturesScaled, spl == FALSE)
+spl = sample.split(topDeathFeatures$Class, SplitRatio = 0.70)
+deathDataTrain = subset(topDeathFeatures, spl == TRUE)
+deathDataTest = subset(topDeathFeatures, spl == FALSE)
 table(deathDataTrain$Class)
 table(deathDataTest$Class)
 
-library(FNN)
-knnDeathModel <- knn(deathDataTrain, deathDataTest, deathDataTrain$Class, k = 2)
-str(knnDeathMode)
-head(knnDeathMode)
-head(deathDataTest$Class)
-table(knnDeathMode, deathDataTest$Class)
-mean(knnDeathMode != deathDataTest$Class)
+#Note Data is still unscaled at this point
+#REMOVE DEATHS and other features we do not want to train on
+deathDataTrain2= dplyr::select(deathDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+deathDataTrainScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 
+train_index <-createFolds(deathDataTrainScaled$Class, k =10)
+knnFitDeath <- deathDataTrainScaled %>% train(Class ~ ., 
+                                              method = "knn", 
+                                              data= .,
+                                              preProcess = "scale", 
+                                              tuneLength = 5,
+                                              tuneGrid=data.frame(k=1:10),
+                                              trControl = trainControl(method = "cv", indexOut = train_index))
+knnFitDeath
 
+knnFitDeath$finalModel
 
 #############################################################################
 #######   NEAREST NEIGHBOR CASES   ##########################################
 #############################################################################
 #====================================================================
-
 set.seed(100)
 spl = sample.split(topCovidFeatures$Class, SplitRatio = 0.70)
 CovidDataTrain = subset(topCovidFeatures, spl == TRUE)
@@ -713,13 +836,17 @@ table(CovidDataTest$Class)
 CovidDataTrain2= dplyr::select(CovidDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
 CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 
-library(FNN)
-knnCovidModel <- knn(CovidDataTrain, CovidDataTest, CovidDataTrain$Class, k = 2)
-str(knnCovidModel)
-head(knnCovidModel)
-head(CovidDataTest$Class)
-table(knnCovidModel, CovidDataTest$Class)
-mean(knnCovidModel != CovidDataTest$Class)
+train_index <-createFolds(CovidDataTrainScaled$Class, k =10)
+knnFitCase <- CovidDataTrainScaled %>% train(Class ~ ., 
+                                             method = "knn", 
+                                             data= .,
+                                             preProcess = "scale", 
+                                             tuneLength = 5,
+                                             tuneGrid=data.frame(k=1:10),
+                                             trControl = trainControl(method = "cv", indexOut = train_index))
+knnFitCase
+
+knnFitCase$finalModel
 
 
 #############################################################################
