@@ -102,7 +102,8 @@ cases_mobility <- regex_inner_join(cases_orig, mob, by='county_fips_code')
 cases_mob <- cases_mobility[!is.na(cases_mobility$parks_percent_change_from_baseline), ]
 cases_mob <- cases_mob[!is.na(cases_mob$county_fips_code.x), ] 
 cases_mob <- cases_mob %>% rename(date=date.x)
-cases_mob <- setDT(cases_mob)[,(261:270) :=NULL]
+cases_mob <- cases_mob %>% rename(county_fips_code=county_fips_code.x)
+cases_mob <- setDT(cases_mob)[,(249:270) :=NULL]
 #cases_mob[,(249:258) :=NULL]
 
 cases_first_day <- cases_mob %>% filter(date == '2021-04-21') 
@@ -121,7 +122,7 @@ summary(cases_normalized$cases_norm)
 #Determine thresholds to match CDC
 plot(cases_normalized$cases_norm, xlim=c(1,1000), log='x', type="l", col="orange", lwd=5)#, xlab="time", ylab="concentration")
 
-# Cases' Classes: low < 200 <= moderate < 750 <= high
+# Cases' Classes: low < 5000 <= moderate < 15000 <= high
 
 deaths_first_day <- cases_mob %>% filter(date == '2021-04-21')
 deaths_first_day <- cases_mob[1:2110,]
@@ -139,7 +140,91 @@ summary(deaths_normalized$deaths_norm)
 #Determine thresholds to match CDC
 plot(deaths_normalized$deaths_norm, xlim=c(1,300), log='x', type="l", col="red", lwd=5)#, xlab="time", ylab="concentration")
 
-# Deaths' Classes: low < 5 <= moderate < 15 <= high
+# Deaths' Classes: low < 100 <= moderate < 300 <= high
+
+#############################################################################
+#######   SVM on deaths_normalized   ########################################
+#############################################################################
+
+# Add Death Labels
+deaths_normalized["Class"] = "MEDIUM"
+deaths_normalized$Class[100 < deaths_normalized$deaths_norm | deaths_normalized$deaths_norm <= 300] = "MEDIUM"
+deaths_normalized$Class[(deaths_normalized$deaths_norm <= 100)] = "LOW"
+deaths_normalized$Class[(deaths_normalized$deaths_norm > 300)] = "HIGH"
+str(deaths_normalized)
+table(deaths_normalized$Class)
+
+set.seed(100)
+spl = sample.split(deaths_normalized$Class, SplitRatio = 0.70)
+CovidDataTrain = subset(deaths_normalized, spl == TRUE)
+CovidDataTest = subset(deaths_normalized, spl == FALSE)
+table(CovidDataTrain$Class)
+table(CovidDataTest$Class)
+#Note Data is still unscaled at this point
+#REMOVE confirmed cases and other features we do not want to train on
+CovidDataTrain2= dplyr::select(CovidDataTrain,  -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+# Training the support vector machine (SVM) model
+svmfit <- svm(formula = Class ~ ., data = CovidDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
+print(svmfit)
+
+# Checking the model
+summary(svmfit)
+
+#====================================================================
+# Evaluate performance of model on test data set - most important
+#====================================================================
+#REMOVE DEATHS and other features we do not want to train on
+CovidDataTest2=dplyr::select(CovidDataTest, -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
+# Predicting the Test set results
+svm_pred = predict(svmfit, newdata = CovidDataTestScaled)
+#Confusion Matrix
+svm_tab = table(CovidDataTestScaled$Class, svm_pred)
+svm_tab
+
+#############################################################################
+#######   SVM on cases_normalized   #########################################
+#############################################################################
+
+# Add Covid Labels
+cases_normalized["Class"] = "MEDIUM"
+cases_normalized$Class[5000 < cases_normalized$cases_norm | cases_normalized$cases_norm <= 15000] = "MEDIUM"
+cases_normalized$Class[(cases_normalized$cases_norm <= 5000)] = "LOW"
+cases_normalized$Class[(cases_normalized$cases_norm > 15000)] = "HIGH"
+str(cases_normalized)
+table(cases_normalized$Class)
+
+set.seed(100)
+spl = sample.split(cases_normalized$Class, SplitRatio = 0.70)
+CovidDataTrain = subset(cases_normalized, spl == TRUE)
+CovidDataTest = subset(cases_normalized, spl == FALSE)
+table(CovidDataTrain$Class)
+table(CovidDataTest$Class)
+#Note Data is still unscaled at this point
+#REMOVE confirmed cases and other features we do not want to train on
+CovidDataTrain2= dplyr::select(CovidDataTrain, -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+# Training the support vector machine (SVM) model
+svmfit <- svm(formula = Class ~ ., data = CovidDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
+print(svmfit)
+
+# Checking the model
+summary(svmfit)
+
+#====================================================================
+# Evaluate performance of model on test data set - most important
+#====================================================================
+#REMOVE DEATHS and other features we do not want to train on
+CovidDataTest2=dplyr::select(CovidDataTest,  -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
+# Predicting the Test set results
+svm_pred = predict(svmfit, newdata = CovidDataTestScaled)
+#Confusion Matrix
+svm_tab = table(CovidDataTestScaled$Class, svm_pred)
+svm_tab
+
+
 
 #NO COUNTY FIPS CODE or COUNTY NAME??
 str(govt_response)
@@ -678,8 +763,9 @@ table(CovidDataTest$Class)
 CovidDataTrain2= dplyr::select(CovidDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
 CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 # Training the support vector machine (SVM) model
-svmfit <- svm(formula = Class ~ ., data = CovidDataTrainScaled, type = 'C-classification', kernel = 'linear')
+svmfit <- svm(formula = Class ~ ., data = CovidDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
 print(svmfit)
+
 # Checking the model
 summary(svmfit)
 
@@ -694,6 +780,8 @@ svm_pred = predict(svmfit, newdata = CovidDataTestScaled)
 #Confusion Matrix
 svm_tab = table(CovidDataTestScaled$Class, svm_pred)
 svm_tab
+
+
 
 #############################################################################
 #######   ANN Deaths   ######################################################
