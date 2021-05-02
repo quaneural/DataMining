@@ -829,18 +829,26 @@ tab1
 #######   NEAREST NEIGHBOR Deaths   #########################################
 #############################################################################
 #====================================================================
-# Split train and test data sets
-set.seed(100)
-spl = sample.split(topDeathFeatures$Class, SplitRatio = 0.70)
-deathDataTrain = subset(topDeathFeatures, spl == TRUE)
-deathDataTest = subset(topDeathFeatures, spl == FALSE)
-table(deathDataTrain$Class)
-table(deathDataTest$Class)
+deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
 
+# Add Death Labels
+deaths_normalized["Class"] = "MEDIUM"
+deaths_normalized$Class[100 < deaths_normalized$deaths_norm | deaths_normalized$deaths_norm <= 300] = "MEDIUM"
+deaths_normalized$Class[(deaths_normalized$deaths_norm <= 100)] = "LOW"
+deaths_normalized$Class[(deaths_normalized$deaths_norm > 300)] = "HIGH"
+str(deaths_normalized)
+table(deaths_normalized$Class)
+
+set.seed(100)
+spl = sample.split(deaths_normalized$Class, SplitRatio = 0.70)
+deathsDataTrain = subset(deaths_normalized, spl == TRUE)
+deathsDataTest = subset(deaths_normalized, spl == FALSE)
+table(deathsDataTrain$Class)
+table(deathsDataTest$Class)
 #Note Data is still unscaled at this point
-#REMOVE DEATHS and other features we do not want to train on
-deathDataTrain2= dplyr::select(deathDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
-deathDataTrainScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+#REMOVE confirmed cases and other features we do not want to train on
+deathsDataTrain2= dplyr::select(deathsDataTrain,  -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
+deathsDataTrainScaled = deathsDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 
 train_index <-createFolds(deathDataTrainScaled$Class, k =10)
 knnFitDeath <- deathDataTrainScaled %>% train(Class ~ ., 
@@ -854,20 +862,41 @@ knnFitDeath
 
 knnFitDeath$finalModel
 
+#====================================================================
+# Evaluate performance of model on test data set - most important
+#====================================================================
+#REMOVE DEATHS and other features we do not want to train on
+deathDataTest2=dplyr::select(deathDataTest, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+deathDataTestScaled=deathDataTest2 %>% dplyr::mutate_if(is.numeric, scale)
+PredictCV = predict(multinomDeathModel, newdata = deathDataTestScaled, type = "class",  na.action=na.pass)
+#Confusion Matrix
+tab1 = table(deathDataTestScaled$Class, PredictCV)
+tab1
+
 #############################################################################
 #######   NEAREST NEIGHBOR CASES   ##########################################
 #############################################################################
 #====================================================================
+# Here is a quick and dirty way to remove features for experimental tests. 
+cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
+
+# Add Covid Labels
+cases_normalized["Class"] = "MEDIUM"
+cases_normalized$Class[5000 < cases_normalized$cases_norm | cases_normalized$cases_norm <= 15000] = "MEDIUM"
+cases_normalized$Class[(cases_normalized$cases_norm <= 5000)] = "LOW"
+cases_normalized$Class[(cases_normalized$cases_norm > 15000)] = "HIGH"
+str(cases_normalized)
+table(cases_normalized$Class)
+
 set.seed(100)
-spl = sample.split(topCovidFeatures$Class, SplitRatio = 0.70)
-CovidDataTrain = subset(topCovidFeatures, spl == TRUE)
-CovidDataTest = subset(topCovidFeatures, spl == FALSE)
+spl = sample.split(cases_normalized$Class, SplitRatio = 0.70)
+CovidDataTrain = subset(cases_normalized, spl == TRUE)
+CovidDataTest = subset(cases_normalized, spl == FALSE)
 table(CovidDataTrain$Class)
 table(CovidDataTest$Class)
-
 #Note Data is still unscaled at this point
 #REMOVE confirmed cases and other features we do not want to train on
-CovidDataTrain2= dplyr::select(CovidDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTrain2= dplyr::select(CovidDataTrain, -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases)
 CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 
 train_index <-createFolds(CovidDataTrainScaled$Class, k =10)
@@ -881,6 +910,18 @@ knnFitCase <- CovidDataTrainScaled %>% train(Class ~ .,
 knnFitCase
 
 knnFitCase$finalModel
+
+#====================================================================
+# Evaluate performance of model on test data set - most important
+#====================================================================
+#REMOVE DEATHS and other features we do not want to train on
+CovidDataTest2=dplyr::select(CovidDataTest, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
+PredictCV = predict(multinomCovidModel, newdata = CovidDataTestScaled, type = "class",  na.action=na.pass)
+#Confusion Matrix
+tab1 = table(CovidDataTestScaled$Class, PredictCV)
+tab1
+
 
 
 #############################################################################
