@@ -611,11 +611,11 @@ summary(ctreeFitDeath)
 #====================================================================
 # Evaluate performance of model on test data set - most important
 #====================================================================
-prDeathsDataTestScaled <- predict(ctreeFitDeath, deathsDataTestScaled)
-summary(prDeathsDataTestScaled)
-as.factor(prDeathsDataTestScaled)
-confusionMatrix(as.factor(deathsDataTestScaled$Class), prDeathsDataTestScaled)
-
+prCtreeDeathsDataTestScaled <- predict(ctreeFitDeath, deathsDataTestScaled)
+summary(prCtreeDeathsDataTestScaled)
+as.factor(prCtreeDeathsDataTestScaled)
+ctreeconfusionMatrixDeaths <- confusionMatrix(as.factor(deathsDataTestScaled$Class), prCtreeDeathsDataTestScaled)
+ctreeconfusionMatrixDeaths
 
 
 #############################################################################
@@ -638,11 +638,11 @@ plot(ctreeFitCovid$finalModel)
 #====================================================================
 # Evaluate performance of model on test data set - most important
 #====================================================================
-prCovidDataTestScaled <- predict(ctreeFitCovid, CovidDataTestScaled)
-summary(prCovidDataTestScaled)
-as.factor(prCovidDataTestScaled)
-confusionMatrix(as.factor(CovidDataTestScaled$Class), prCovidDataTestScaled)
-
+prCtreeCovidDataTestScaled <- predict(ctreeFitCovid, CovidDataTestScaled)
+summary(prCtreeCovidDataTestScaled)
+as.factor(prCtreeCovidDataTestScaled)
+ctreeconfusionMatrixCovid <- confusionMatrix(as.factor(CovidDataTestScaled$Class), prCtreeCovidDataTestScaled)
+ctreeconfusionMatrixCovid
 
 
 
@@ -720,11 +720,11 @@ knnFitDeath$finalModel
 #====================================================================
 # Evaluate performance of model on test data set - most important
 #====================================================================
-
-PredictCV = predict(multinomDeathModel, newdata = deathDataTestScaled, type = "class",  na.action=na.pass)
-#Confusion Matrix
-tab1 = table(deathDataTestScaled$Class, PredictCV)
-tab1
+prKNNDeathsDataTestScaled <- predict(knnFitDeath, deathsDataTestScaled)
+summary(prKNNDeathsDataTestScaled)
+as.factor(prKNNDeathsDataTestScaled)
+KNNconfusionMatrixDeaths <- confusionMatrix(as.factor(deathsDataTestScaled$Class), prKNNDeathsDataTestScaled)
+KNNconfusionMatrixDeaths
 
 #############################################################################
 #######   NEAREST NEIGHBOR CASES   ##########################################
@@ -748,11 +748,11 @@ knnFitCase$finalModel
 #====================================================================
 # Evaluate performance of model on test data set - most important
 #====================================================================
-PredictCV = predict(multinomCovidModel, newdata = CovidDataTestScaled, type = "class",  na.action=na.pass)
-#Confusion Matrix
-tab1 = table(CovidDataTestScaled$Class, PredictCV)
-tab1
-
+prKNNCovidDataTestScaled <- predict(knnFitCase, CovidDataTestScaled)
+summary(prKNNCovidDataTestScaled)
+as.factor(prKNNCovidDataTestScaled)
+KNNconfusionMatrixCovid <- confusionMatrix(as.factor(CovidDataTestScaled$Class), prKNNCovidDataTestScaled)
+KNNconfusionMatrixCovid
 
 
 
