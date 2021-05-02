@@ -79,6 +79,7 @@ cases <- dbGetQuery(con,'
   ON covid19.county_fips_code = acs.geo_id
   WHERE CAST(date AS DATETIME) BETWEEN "2021-04-21" AND "2021-04-27"
 ')
+#write_csv(cases, file="CovidCases7days.csv")
 
 # Changed query to match date range in cases query. Should be more manageable size.
 mobility <- dbGetQuery(con,'
@@ -87,12 +88,14 @@ mobility <- dbGetQuery(con,'
   WHERE country_region LIKE "United States" AND
   CAST(date AS DATETIME) BETWEEN "2021-04-21" AND "2021-04-27"
 ')
+#write_csv(mobility, file="Mobilitys7days.csv")
 
 govt_response <- dbGetQuery(con,'
  SELECT * 
   FROM `bigquery-public-data.covid19_govt_response.oxford_policy_tracker` 
   WHERE country_name LIKE "United_States"
 ')
+#write_csv(govt_response, file="GovResponse.csv")
 
 cases_orig <- cases
 
@@ -517,7 +520,7 @@ owner_occupied_housing_units_median_value, households_retirement_income,commute_
     # 1. Logistic Regression
     # 2. Decision Tree
     # 3. K Nearest Neighbor
-    # 4. Multinomial Naive Bayes
+    # 4. Multinomial Logistic Regression
     # 5. Support Vector Machine
     # 6. Artificial Neural Network
 
@@ -640,7 +643,7 @@ plot(ctreeFitCovid$finalModel)
 
 
 #############################################################################
-#######   Multinomial Naive Bayes Deaths   ##################################
+#######   Multinomial Logistic Regression Deaths   ##########################
 #############################################################################
 
 # Training the multinomial model
@@ -667,7 +670,7 @@ tab1
 
 
 #############################################################################
-#######   Multinomial Naive Bayes CASES   ###################################
+#######   Multinomial Logistic Regression CASES   ###########################
 #############################################################################
 
 # Training the multinomial model
