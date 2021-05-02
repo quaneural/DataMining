@@ -549,7 +549,22 @@ armed_forces,female_female_households,commute_90_more_mins, vacant_housing_units
  asian_pop, median_rent, asian_including_hispanic, income_per_capita,transit_stations_percent_change_from_baseline,
  employed_public_administration,less_than_high_school_graduate, amerindian_including_hispanic,percent_income_spent_on_rent,
   median_age,parks_percent_change_from_baseline,owner_occupied_housing_units_upper_value_quartile,four_more_cars,
-  male_45_64_high_school,amerindian_pop, male_45_64_grade_9_12)                                    
+  male_45_64_high_school,amerindian_pop, male_45_64_grade_9_12)    
+
+TopCovidDataTestScaled =dplyr::select(CovidDataTestScaled,Class,
+                                      armed_forces,female_female_households,commute_90_more_mins, vacant_housing_units,hispanic_male_55_64,owner_occupied_housing_units_median_value,
+                                      hispanic_any_race, two_or_more_races_pop, hispanic_male_45_54, median_year_structure_built, hispanic_pop, mobile_homes, asian_male_45_54,
+                                      asian_pop, median_rent, asian_including_hispanic, income_per_capita,transit_stations_percent_change_from_baseline,
+                                      employed_public_administration,less_than_high_school_graduate, amerindian_including_hispanic,percent_income_spent_on_rent,
+                                      median_age,parks_percent_change_from_baseline,owner_occupied_housing_units_upper_value_quartile,four_more_cars,
+                                      male_45_64_high_school,amerindian_pop, male_45_64_grade_9_12)    
+TopCovidDataTrainScaled =dplyr::select(CovidDataTrainScaled,Class,
+                                      armed_forces,female_female_households,commute_90_more_mins, vacant_housing_units,hispanic_male_55_64,owner_occupied_housing_units_median_value,
+                                      hispanic_any_race, two_or_more_races_pop, hispanic_male_45_54, median_year_structure_built, hispanic_pop, mobile_homes, asian_male_45_54,
+                                      asian_pop, median_rent, asian_including_hispanic, income_per_capita,transit_stations_percent_change_from_baseline,
+                                      employed_public_administration,less_than_high_school_graduate, amerindian_including_hispanic,percent_income_spent_on_rent,
+                                      median_age,parks_percent_change_from_baseline,owner_occupied_housing_units_upper_value_quartile,four_more_cars,
+                                      male_45_64_high_school,amerindian_pop, male_45_64_grade_9_12)   
                                        
 #   End Feature Importance Analysis  ----------------------------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------------------------------------------------------------
