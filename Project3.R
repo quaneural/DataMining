@@ -146,7 +146,7 @@ plot(deaths_normalized$deaths_norm, xlim=c(1,300), log='x', type="l", col="red",
 #############################################################################
 
 # Here is a quick and dirty way to remove features for experimental tests. Range of (9:248) will yield ONLY mobility data with delta and class column added.
-deaths_normalized <- setDT(deaths_normalized)[,(9:248) :=NULL] 
+#deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
 
 # Add Death Labels
 deaths_normalized["Class"] = "MEDIUM"
@@ -164,7 +164,7 @@ table(deathsDataTrain$Class)
 table(deathsDataTest$Class)
 #Note Data is still unscaled at this point
 #REMOVE confirmed cases and other features we do not want to train on
-deathsDataTrain2= dplyr::select(deathsDataTrain,  -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases)
+deathsDataTrain2= dplyr::select(deathsDataTrain,  -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
 deathsDataTrainScaled = deathsDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 # Training the support vector machine (SVM) model
 svmfit <- svm(formula = Class ~ ., data = deathsDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
@@ -177,7 +177,7 @@ summary(svmfit)
 # Evaluate performance of model on test data set - most important
 #====================================================================
 #REMOVE DEATHS and other features we do not want to train on
-deathsDataTest2=dplyr::select(deathsDataTest, -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases)
+deathsDataTest2=dplyr::select(deathsDataTest, -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
 deathsDataTestScaled=deathsDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 # Predicting the Test set results
 svm_pred = predict(svmfit, newdata = deathsDataTestScaled)
@@ -191,7 +191,7 @@ svm_tab
 #############################################################################
 
 # Here is a quick and dirty way to remove features for experimental tests. Range of (9:248) will yield ONLY mobility data with delta and class column added.
-cases_normalized <- setDT(cases_normalized)[,(9:248) :=NULL] 
+cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
 
 # Add Covid Labels
 cases_normalized["Class"] = "MEDIUM"
@@ -209,7 +209,7 @@ table(CovidDataTrain$Class)
 table(CovidDataTest$Class)
 #Note Data is still unscaled at this point
 #REMOVE confirmed cases and other features we do not want to train on
-CovidDataTrain2= dplyr::select(CovidDataTrain, -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases)
+CovidDataTrain2= dplyr::select(CovidDataTrain, -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
 CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 # Training the support vector machine (SVM) model
 svmfit <- svm(formula = Class ~ ., data = CovidDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
@@ -222,7 +222,7 @@ summary(svmfit)
 # Evaluate performance of model on test data set - most important
 #====================================================================
 #REMOVE DEATHS and other features we do not want to train on
-CovidDataTest2=dplyr::select(CovidDataTest,  -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases)
+CovidDataTest2=dplyr::select(CovidDataTest,  -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
 CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 # Predicting the Test set results
 svm_pred = predict(svmfit, newdata = CovidDataTestScaled)
@@ -552,9 +552,10 @@ owner_occupied_housing_units_median_value, households_retirement_income,commute_
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # 1. Logistic Regression
     # 2. Decision Tree
-    # 3. Multinomial Naive Bayes
-    # 4. Support Vector Machine
-    # 5. Artificial Neural Network
+    # 3. K Nearest Neighbor
+    # 4. Multinomial Naive Bayes
+    # 5. Support Vector Machine
+    # 6. Artificial Neural Network
 
 # Create confusion matrices to compare model performance
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -623,7 +624,7 @@ hist(pr, breaks=20)
 table(actual=deathDataTestScaled$Class, predicted=pr>.5)
 
 #############################################################################
-#######   Logistic Regression Cases   ##################################
+#######   Logistic Regression Cases   #######################################
 #############################################################################
 set.seed(100)
 spl = sample.split(topCovidFeatures$Class, SplitRatio = 0.70)
@@ -653,25 +654,31 @@ table(actual=CovidDataTestScaled$Class, predicted=pr>.5)
 
 
 #############################################################################
-#######   Decision Tree Deaths   ##################################
+#######   Decision Tree Deaths   ############################################
 #############################################################################
+
+deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
+
+# Add Death Labels
+deaths_normalized["Class"] = "MEDIUM"
+deaths_normalized$Class[100 < deaths_normalized$deaths_norm | deaths_normalized$deaths_norm <= 300] = "MEDIUM"
+deaths_normalized$Class[(deaths_normalized$deaths_norm <= 100)] = "LOW"
+deaths_normalized$Class[(deaths_normalized$deaths_norm > 300)] = "HIGH"
+str(deaths_normalized)
+table(deaths_normalized$Class)
+
 set.seed(100)
-spl = sample.split(topDeathFeatures$Class, SplitRatio = 0.70)
-deathDataTrain = subset(topDeathFeatures, spl == TRUE)
-deathDataTest = subset(topDeathFeatures, spl == FALSE)
-table(deathDataTrain$Class)
-table(deathDataTest$Class)
-
+spl = sample.split(deaths_normalized$Class, SplitRatio = 0.70)
+deathsDataTrain = subset(deaths_normalized, spl == TRUE)
+deathsDataTest = subset(deaths_normalized, spl == FALSE)
+table(deathsDataTrain$Class)
+table(deathsDataTest$Class)
 #Note Data is still unscaled at this point
-#REMOVE DEATHS and other features we do not want to train on
-deathDataTrain2= dplyr::select(deathDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
-deathDataTrainScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+#REMOVE confirmed cases and other features we do not want to train on
+deathsDataTrain2= dplyr::select(deathsDataTrain,  -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
+deathsDataTrainScaled = deathsDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 
-deathDataTest2= dplyr::select(deathDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
-deathDataTestScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
-
-
-na.exclude(deathDataTrainScaled$Class)
+#na.exclude(deathDataTrainScaled$Class)
 train_index <-createFolds(deathDataTrainScaled$Class, k =10)
 ctreeFitDeath <- deathDataTrainScaled %>% train(Class ~ .,
                                                 method = "ctree",
@@ -682,25 +689,45 @@ ctreeFitDeath
 dev.off()
 plot(ctreeFitDeath$finalModel)
 
+# Checking the model
+summary(ctreeFitDeath)
+
+#====================================================================
+# Evaluate performance of model on test data set - most important
+#====================================================================
+#REMOVE DEATHS and other features we do not want to train on
+deathsDataTest2=dplyr::select(deathsDataTest, -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
+deathsDataTestScaled=deathsDataTest2%>% dplyr::mutate_if(is.numeric, scale)
+
+
+
 
 
 #############################################################################
-#######   Decision Tree Cases   ##################################
+#######   Decision Tree Cases   #############################################
 #############################################################################
+
+# Here is a quick and dirty way to remove features for experimental tests. 
+cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
+
+# Add Covid Labels
+cases_normalized["Class"] = "MEDIUM"
+cases_normalized$Class[5000 < cases_normalized$cases_norm | cases_normalized$cases_norm <= 15000] = "MEDIUM"
+cases_normalized$Class[(cases_normalized$cases_norm <= 5000)] = "LOW"
+cases_normalized$Class[(cases_normalized$cases_norm > 15000)] = "HIGH"
+str(cases_normalized)
+table(cases_normalized$Class)
+
 set.seed(100)
-spl = sample.split(topCovidFeatures$Class, SplitRatio = 0.70)
-CovidDataTrain = subset(topDeathFeatures, spl == TRUE)
-CovidDataTest = subset(topDeathFeatures, spl == FALSE)
+spl = sample.split(cases_normalized$Class, SplitRatio = 0.70)
+CovidDataTrain = subset(cases_normalized, spl == TRUE)
+CovidDataTest = subset(cases_normalized, spl == FALSE)
 table(CovidDataTrain$Class)
 table(CovidDataTest$Class)
-
 #Note Data is still unscaled at this point
-#REMOVE DEATHS and other features we do not want to train on
-CovidDataTrain2= dplyr::select(CovidDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+#REMOVE confirmed cases and other features we do not want to train on
+CovidDataTrain2= dplyr::select(CovidDataTrain, -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases)
 CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
-
-CovidDataTest2= dplyr::select(CovidDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
-CovidDataTestScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 
 train_index <-createFolds(CovidDataTrainScaled$Class, k =10)
 ctreeFitCovid <- CovidDataTrainScaled %>% train(Class ~ .,
@@ -710,7 +737,14 @@ ctreeFitCovid <- CovidDataTrainScaled %>% train(Class ~ .,
                                                 trControl = trainControl(method = "cv", indexOut = train_index))
 ctreeFitCovid
 dev.off()
-plot(ctreeFit$finalModel)
+plot(ctreeFitCovid$finalModel)
+
+#====================================================================
+# Evaluate performance of model on test data set - most important
+#====================================================================
+#REMOVE DEATHS and other features we do not want to train on
+CovidDataTest2=dplyr::select(CovidDataTest, -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
+CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 
 
 
