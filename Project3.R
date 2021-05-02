@@ -576,6 +576,86 @@ tab1
 
 
 
+#############################################################################
+#######   NEAREST NEIGHBOR Deaths#########################################
+#############################################################################
+#====================================================================
+#Note Data is still unscaled at this point
+#REMOVE DEATHS and other features we do not want to train on
+allDeathFeatures2= dplyr::select(deaths_normalized, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+allDeathFeaturesScaled = allDeathFeatures2 %>% dplyr::mutate_if(is.numeric, scale)
+
+# Split train and test data sets
+set.seed(100)
+spl = sample.split(allDeathFeaturesScaled$Class, SplitRatio = 0.70)
+deathDataTrain = subset(allDeathFeaturesScaled, spl == TRUE)
+deathDataTest = subset(allDeathFeaturesScaled, spl == FALSE)
+table(deathDataTrain$Class)
+table(deathDataTest$Class)
+
+library(FNN)
+knnDeathModel <- knn(deathDataTrain, deathDataTest, deathDataTrain$Class, k = 2)
+str(knnDeathMode)
+head(knnDeathMode)
+head(deathDataTest$Class)
+table(knnDeathMode, deathDataTest$Class)
+mean(knnDeathMode != deathDataTest$Class)
+
+
+
+#############################################################################
+#######   NEAREST NEIGHBOR CASESs#########################################
+#############################################################################
+#====================================================================
+
+set.seed(100)
+spl = sample.split(topCovidFeatures$Class, SplitRatio = 0.70)
+CovidDataTrain = subset(topCovidFeatures, spl == TRUE)
+CovidDataTest = subset(topCovidFeatures, spl == FALSE)
+table(CovidDataTrain$Class)
+table(CovidDataTest$Class)
+
+#Note Data is still unscaled at this point
+#REMOVE confirmed cases and other features we do not want to train on
+CovidDataTrain2= dplyr::select(CovidDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+
+library(FNN)
+knnCovidModel <- knn(CovidDataTrain, CovidDataTest, CovidDataTrain$Class, k = 2)
+str(knnCovidModel)
+head(knnCovidModel)
+head(CovidDataTest$Class)
+table(knnCovidModel, CovidDataTest$Class)
+mean(knnCovidModel != CovidDataTest$Class)
+
+
+
+
+
+
+#############################################################################
+#######   NAIVE BAYES Deaths#########################################
+#############################################################################
+#====================================================================
+#Naive bayes
+str(deathDataTrain)
+summary(deathDataTrain)
+deathDataTrain$Class <- as.factor(deathDataTrain$Class)
+
+install.packages("e1071")
+#library(e1071)
+m3 <- naiveBayes(Class ~ ., data = deathDataTrain, laplace = 1)
+name(m3)
+m3$apriori
+m3$tables
+nb_pred <- predict(m3, deathDataTest)
+table(nb_pred, deathDataTrain$Class)
+mean(nb_pred != deathDataTrain$Class)
+
+
+
+#2.3 Comparison
+
 
 
 
