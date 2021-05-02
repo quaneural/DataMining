@@ -110,6 +110,7 @@ cases_mob <- cases_mob %>% rename(date=date.x)
 cases_mob <- cases_mob %>% rename(county_fips_code=county_fips_code.x)
 cases_mob <- setDT(cases_mob)[,(249:270) :=NULL] 
 
+colnames(cases_mob)
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # Preprocessing/Data Cleaning for Predicting Covid Cases
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -495,6 +496,76 @@ owner_occupied_housing_units_median_value, households_retirement_income,commute_
   male_5_to_9, commute_35_44_mins,commute_45_59_mins, employed_finance_insurance_real_estate,white_male_45_54,
   female_65_to_66, male_70_to_74, worked_at_home, income_45000_49999, male_under_5,commute_35_39_mins,commute_90_more_mins)                              
 
+
+################################################################################################
+#  Feature Importance on Normalized Data
+################################################################################################
+covid_set3 = dplyr::select(cases_normalized, -Class, -total_pop, -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths)
+colnames(covid_set3)
+US_covidNorm_weights <- covid_set3 %>% chi.squared(cases_norm ~ ., data = .) %>%
+  as_tibble(rownames = "feature") %>%
+  arrange(desc(attr_importance))
+US_covidNorm_weights
+#write.table(US_covidNorm_weights, file="chisquare_US_covidNorm_weights.csv",sep = ",")
+
+cfs_US_covidNorm_features=covid_set3 %>%cfs(cases_norm ~ ., data = .)
+cfs_US_covidNorm_features
+#[1] "vacant_housing_units_for_sale"           "hispanic_male_55_64"                     "male_45_64_high_school"                 
+#[4] "workplaces_percent_change_from_baseline
+
+topUSCovidNormFeatures = dplyr::select(cases_normalized, -Class, -total_pop, -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths,
+vacant_housing_units_for_sale,hispanic_male_55_64,male_45_64_high_school,workplaces_percent_change_from_baseline,
+population_3_years_over,pop_25_64,male_45_64_some_college,commuters_by_car_truck_van,female_20,income_150000_199999,
+population_1_year_and_over,female_45_to_49,female_pop,four_more_cars,one_year_more_college,employed_retail_trade,
+some_college_and_associates_degree,female_18_to_19,white_male_45_54,graduate_professional_degree,employed_pop,
+income_25000_29999,masters_degree,male_10_to_14,dwellings_1_units_attached,male_5_to_9,income_30000_34999,female_15_to_17,
+rent_40_to_50_percent,female_5_to_9,associates_degree,male_65_to_66,one_car,commute_less_10_mins,two_or_more_races_pop,
+families_with_young_children,male_45_64_grade_9_12,median_income,pop_in_labor_force,unemployed_pop,income_35000_39999,
+children_in_single_female_hh,not_us_citizen_pop,male_80_to_84,male_15_to_17,female_10_to_14,housing_built_1939_or_earlier,
+male_75_to_79,male_45_to_49,in_grades_9_to_12,housing_units,male_22_to_24,owner_occupied_housing_units_median_value,
+commute_25_29_mins,commute_40_44_mins,dwellings_2_units,housing_built_2005_or_later,income_100000_124999,
+different_house_year_ago_same_city,pop_16_over,rent_10_to_15_percent,dwellings_10_to_19_units,asian_male_45_54,
+male_30_to_34,male_60_61,two_parents_father_in_labor_force_families_with_young_children,employed_transportation_warehousing_utilities,
+commuters_drove_alone,income_40000_44999,white_male_55_64,two_parents_in_labor_force_families_with_young_children,
+hispanic_male_55_64,commute_35_39_mins,employed_construction,amerindian_pop,income_per_capita,female_80_to_84,female_75_to_79,
+female_21,employed_science_management_admin_waste,male_21,households,occupied_housing_units,one_parent_families_with_young_children)
+
+
+rf <-randomForest(cases_norm ~ . , 
+                  data=dplyr::select(cases_normalized, -Class, -total_pop, -confirmed_cases, -delta, -county_fips_code, 
+                                     -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths),
+                  importance=TRUE,ntree=1000,na.action=na.exclude)
+imp = importance(rf, type=1)
+imp <- data.frame(predictors=rownames(imp),imp)
+sorted = imp
+sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
+sorted
+#write.csv(sorted, file = "sortedFeatureImportanceRandomForest-CovidNorm.csv", row.names = TRUE)
+
+#includes top 30 from random forest
+topCovidNormFeatures = dplyr::select(cases_normalized, -Class, -total_pop, -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths,
+armed_forces,female_female_households,commute_90_more_mins, vacant_housing_units,hispanic_male_55_64,owner_occupied_housing_units_median_value,
+ hispanic_any_race, two_or_more_races_pop, hispanic_male_45_54, median_year_structure_built, hispanic_pop, mobile_homes, asian_male_45_54,
+ asian_pop, median_rent, asian_including_hispanic, income_per_capita,transit_stations_percent_change_from_baseline,
+ employed_public_administration,less_than_high_school_graduate, amerindian_including_hispanic,percent_income_spent_on_rent,
+  median_age,parks_percent_change_from_baseline,owner_occupied_housing_units_upper_value_quartile,four_more_cars,
+  male_45_64_high_school,amerindian_pop, male_45_64_grade_9_12)    
+
+TopCovidDataTestScaled =dplyr::select(CovidDataTestScaled,Class,
+                                      armed_forces,female_female_households,commute_90_more_mins, vacant_housing_units,hispanic_male_55_64,owner_occupied_housing_units_median_value,
+                                      hispanic_any_race, two_or_more_races_pop, hispanic_male_45_54, median_year_structure_built, hispanic_pop, mobile_homes, asian_male_45_54,
+                                      asian_pop, median_rent, asian_including_hispanic, income_per_capita,transit_stations_percent_change_from_baseline,
+                                      employed_public_administration,less_than_high_school_graduate, amerindian_including_hispanic,percent_income_spent_on_rent,
+                                      median_age,parks_percent_change_from_baseline,owner_occupied_housing_units_upper_value_quartile,four_more_cars,
+                                      male_45_64_high_school,amerindian_pop, male_45_64_grade_9_12)    
+TopCovidDataTrainScaled =dplyr::select(CovidDataTrainScaled,Class,
+                                      armed_forces,female_female_households,commute_90_more_mins, vacant_housing_units,hispanic_male_55_64,owner_occupied_housing_units_median_value,
+                                      hispanic_any_race, two_or_more_races_pop, hispanic_male_45_54, median_year_structure_built, hispanic_pop, mobile_homes, asian_male_45_54,
+                                      asian_pop, median_rent, asian_including_hispanic, income_per_capita,transit_stations_percent_change_from_baseline,
+                                      employed_public_administration,less_than_high_school_graduate, amerindian_including_hispanic,percent_income_spent_on_rent,
+                                      median_age,parks_percent_change_from_baseline,owner_occupied_housing_units_upper_value_quartile,four_more_cars,
+                                      male_45_64_high_school,amerindian_pop, male_45_64_grade_9_12)   
+                                       
 #   End Feature Importance Analysis  ----------------------------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------------------------------------------------------------
 # Brainstorming:
