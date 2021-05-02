@@ -103,8 +103,9 @@ cases_mob <- cases_mobility[!is.na(cases_mobility$parks_percent_change_from_base
 cases_mob <- cases_mob[!is.na(cases_mob$county_fips_code.x), ] 
 cases_mob <- cases_mob %>% rename(date=date.x)
 cases_mob <- cases_mob %>% rename(county_fips_code=county_fips_code.x)
-cases_mob <- setDT(cases_mob)[,(249:270) :=NULL]
-#cases_mob[,(249:258) :=NULL]
+
+# Here is a quick and dirty way to remove features for experimental tests. Default range is (249:270) to remove redundant and NA features
+cases_mob <- setDT(cases_mob)[,(9:270) :=NULL] 
 
 cases_first_day <- cases_mob %>% filter(date == '2021-04-21') 
 cases_first_day <- cases_mob[1:2110,]
@@ -179,6 +180,7 @@ CovidDataTest2=dplyr::select(CovidDataTest, -deaths, -delta, -deaths_norm, -coun
 CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 # Predicting the Test set results
 svm_pred = predict(svmfit, newdata = CovidDataTestScaled)
+summary(svm_pred)
 #Confusion Matrix
 svm_tab = table(CovidDataTestScaled$Class, svm_pred)
 svm_tab
