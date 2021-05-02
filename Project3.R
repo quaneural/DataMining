@@ -35,6 +35,8 @@
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 library("tidyverse")
 library("nnet")
+library("neuralnet")
+library("MASS")
 library("MAP")
 library("maps")
 library("DT")
@@ -47,17 +49,17 @@ library("relaimpo")
 library("randomForest")
 library("fuzzyjoin")
 library("data.table")
-library(dplyr)
 # CART
-library(rpart)
-library(rpart.plot)
+library("rpart")
+library("rpart.plot")
 # sample.split
-library(caTools)
+library("caTools")
 # Cross Validation
-library(caret)
-library(e1071)
+library("caret")
+library("e1071")
 # ROC Curve
-library(ROCR)
+library("ROCR")
+
 
 
 # Establish connection to bigrquery database and query data
@@ -459,7 +461,7 @@ owner_occupied_housing_units_median_value, households_retirement_income,commute_
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # 1. Logistic Regression
     # 2. Decision Tree
-    # 3. Naive Bayes
+    # 3. Multinomial Naive Bayes
     # 4. Support Vector Machine
     # 5. Artificial Neural Network
 
@@ -501,7 +503,7 @@ str(topCovidFeatures)
 table(topCovidFeatures$Class)
 
 #############################################################################
-#######   LOGISTIC REGRESSION Deaths#########################################
+#######   Multinomial Naive Bayes Deaths   ##################################
 #############################################################################
 set.seed(100)
 spl = sample.split(topDeathFeatures$Class, SplitRatio = 0.70)
@@ -539,7 +541,7 @@ tab1
 
 
 #############################################################################
-#######   LOGISTIC REGRESSION CASESs#########################################
+#######   Multinomial Naive Bayes CASES   ###################################
 #############################################################################
 set.seed(100)
 spl = sample.split(topCovidFeatures$Class, SplitRatio = 0.70)
@@ -577,7 +579,7 @@ tab1
 
 
 #############################################################################
-#######   NEAREST NEIGHBOR Deaths#########################################
+#######   NEAREST NEIGHBOR Deaths   #########################################
 #############################################################################
 #====================================================================
 #Note Data is still unscaled at this point
@@ -604,7 +606,7 @@ mean(knnDeathMode != deathDataTest$Class)
 
 
 #############################################################################
-#######   NEAREST NEIGHBOR CASESs#########################################
+#######   NEAREST NEIGHBOR CASES   ##########################################
 #############################################################################
 #====================================================================
 
@@ -629,34 +631,137 @@ table(knnCovidModel, CovidDataTest$Class)
 mean(knnCovidModel != CovidDataTest$Class)
 
 
-
-
-
-
 #############################################################################
-#######   NAIVE BAYES Deaths#########################################
+#######   SVM Deaths   ######################################################
 #############################################################################
+set.seed(100)
+spl = sample.split(topDeathFeatures$Class, SplitRatio = 0.70)
+deathDataTrain = subset(topDeathFeatures, spl == TRUE)
+deathDataTest = subset(topDeathFeatures, spl == FALSE)
+table(deathDataTrain$Class)
+table(deathDataTest$Class)
+#Note Data is still unscaled at this point
+#REMOVE DEATHS and other features we do not want to train on
+deathDataTrain2= dplyr::select(deathDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+deathDataTrainScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+# Training the support vector machine (SVM) model
+svmfit <- svm(formula = Class ~ ., data = deathDataTrainScaled, type = 'C-classification', kernel = 'linear')
+print(svmfit)
+# Checking the model
+summary(svmfit)
+
 #====================================================================
-#Naive bayes
-str(deathDataTrain)
-summary(deathDataTrain)
-deathDataTrain$Class <- as.factor(deathDataTrain$Class)
-
-install.packages("e1071")
-#library(e1071)
-m3 <- naiveBayes(Class ~ ., data = deathDataTrain, laplace = 1)
-name(m3)
-m3$apriori
-m3$tables
-nb_pred <- predict(m3, deathDataTest)
-table(nb_pred, deathDataTrain$Class)
-mean(nb_pred != deathDataTrain$Class)
+# Evaluate performance of model on test data set - most important
+#====================================================================
+#REMOVE DEATHS and other features we do not want to train on
+deathDataTest2=dplyr::select(deathDataTest, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+deathDataTestScaled=deathDataTest2 %>% dplyr::mutate_if(is.numeric, scale)
+# Predicting the Test set results
+svm_pred = predict(svmfit, newdata = deathDataTestScaled)
+#Confusion Matrix
+svm_tab = table(deathDataTestScaled$Class, svm_pred)
+svm_tab
 
 
 
-#2.3 Comparison
+#############################################################################
+#######   SVM CASES   #######################################################
+#############################################################################
+set.seed(100)
+spl = sample.split(topCovidFeatures$Class, SplitRatio = 0.70)
+CovidDataTrain = subset(topCovidFeatures, spl == TRUE)
+CovidDataTest = subset(topCovidFeatures, spl == FALSE)
+table(CovidDataTrain$Class)
+table(CovidDataTest$Class)
+#Note Data is still unscaled at this point
+#REMOVE confirmed cases and other features we do not want to train on
+CovidDataTrain2= dplyr::select(CovidDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+# Training the support vector machine (SVM) model
+svmfit <- svm(formula = Class ~ ., data = CovidDataTrainScaled, type = 'C-classification', kernel = 'linear')
+print(svmfit)
+# Checking the model
+summary(svmfit)
+
+#====================================================================
+# Evaluate performance of model on test data set - most important
+#====================================================================
+#REMOVE DEATHS and other features we do not want to train on
+CovidDataTest2=dplyr::select(CovidDataTest, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
+# Predicting the Test set results
+svm_pred = predict(svmfit, newdata = CovidDataTestScaled)
+#Confusion Matrix
+svm_tab = table(CovidDataTestScaled$Class, svm_pred)
+svm_tab
+
+#############################################################################
+#######   ANN Deaths   ######################################################
+#############################################################################
+set.seed(100)
+spl = sample.split(topDeathFeatures$Class, SplitRatio = 0.70)
+deathDataTrain = subset(topDeathFeatures, spl == TRUE)
+deathDataTest = subset(topDeathFeatures, spl == FALSE)
+table(deathDataTrain$Class)
+table(deathDataTest$Class)
+#Note Data is still unscaled at this point
+#REMOVE DEATHS and other features we do not want to train on
+deathDataTrain2= dplyr::select(deathDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+deathDataTrainScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+# Work on parameters of hidden layers of NN
+n <- names(deathDataTrainScaled)
+f <- as.formula(paste("Class ~", paste(n[! n %in% "Class"], collapse = " + ")))
+# Training the artificial neural network (ANN) model
+nn <- neuralnet(f, data = deathDataTrainScaled, hidden = c(5, 3), linear.output = T)
+print(nn)
+# Checking the model
+summary(nn)
+
+#====================================================================
+# Evaluate performance of model on test data set - most important
+#====================================================================
+#REMOVE DEATHS and other features we do not want to train on
+deathDataTest2=dplyr::select(deathDataTest, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+deathDataTestScaled=deathDataTest2 %>% dplyr::mutate_if(is.numeric, scale)
+# Predicting the Test set results
+nn_pred = predict(nn, newdata = deathDataTestScaled)
+#Confusion Matrix
+nn_tab = table(deathDataTestScaled$Class, nn_pred)
+nn_tab
 
 
 
+#############################################################################
+#######   ANN CASES   #######################################################
+#############################################################################
+set.seed(100)
+spl = sample.split(topCovidFeatures$Class, SplitRatio = 0.70)
+CovidDataTrain = subset(topCovidFeatures, spl == TRUE)
+CovidDataTest = subset(topCovidFeatures, spl == FALSE)
+table(CovidDataTrain$Class)
+table(CovidDataTest$Class)
+#Note Data is still unscaled at this point
+#REMOVE confirmed cases and other features we do not want to train on
+CovidDataTrain2= dplyr::select(CovidDataTrain, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+# Work on parameters of hidden layers of NN
+n <- names(CovidDataTrainScaled)
+f <- as.formula(paste("Class ~", paste(n[! n %in% "Class"], collapse = " + ")))
+# Training the artificial neural network (ANN) model
+nn <- neuralnet(f, data = CovidDataTrainScaled, hidden = c(5, 3), linear.output = T)
+print(nn)
+# Checking the model
+summary(nn)
 
+#====================================================================
+# Evaluate performance of model on test data set - most important
+#====================================================================
+#REMOVE DEATHS and other features we do not want to train on
+CovidDataTest2=dplyr::select(CovidDataTest, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -deaths,-total_pop)
+CovidDataTestScaled=CovidDataTest2 %>% dplyr::mutate_if(is.numeric, scale)
+# Predicting the Test set results
+nn_pred = predict(nn, newdata = CovidDataTestScaled)
+#Confusion Matrix
+nn_tab = table(CovidDataTestScaled$Class, nn_pred)
+nn_tab
 
