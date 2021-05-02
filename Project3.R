@@ -157,16 +157,16 @@ table(deaths_normalized$Class)
 
 set.seed(100)
 spl = sample.split(deaths_normalized$Class, SplitRatio = 0.70)
-CovidDataTrain = subset(deaths_normalized, spl == TRUE)
-CovidDataTest = subset(deaths_normalized, spl == FALSE)
-table(CovidDataTrain$Class)
-table(CovidDataTest$Class)
+deathsDataTrain = subset(deaths_normalized, spl == TRUE)
+deathsDataTest = subset(deaths_normalized, spl == FALSE)
+table(deathsDataTrain$Class)
+table(deathsDataTest$Class)
 #Note Data is still unscaled at this point
 #REMOVE confirmed cases and other features we do not want to train on
-CovidDataTrain2= dplyr::select(CovidDataTrain,  -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
-CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
+deathsDataTrain2= dplyr::select(deathsDataTrain,  -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+deathsDataTrainScaled = deathsDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 # Training the support vector machine (SVM) model
-svmfit <- svm(formula = Class ~ ., data = CovidDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
+svmfit <- svm(formula = Class ~ ., data = deathsDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
 print(svmfit)
 
 # Checking the model
@@ -176,13 +176,13 @@ summary(svmfit)
 # Evaluate performance of model on test data set - most important
 #====================================================================
 #REMOVE DEATHS and other features we do not want to train on
-CovidDataTest2=dplyr::select(CovidDataTest, -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
-CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
+deathsDataTest2=dplyr::select(deathsDataTest, -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+deathsDataTestScaled=deathsDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 # Predicting the Test set results
-svm_pred = predict(svmfit, newdata = CovidDataTestScaled)
+svm_pred = predict(svmfit, newdata = deathsDataTestScaled)
 summary(svm_pred)
 #Confusion Matrix
-svm_tab = table(CovidDataTestScaled$Class, svm_pred)
+svm_tab = table(deathsDataTestScaled$Class, svm_pred)
 svm_tab
 
 #############################################################################
