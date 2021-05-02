@@ -103,9 +103,7 @@ cases_mob <- cases_mobility[!is.na(cases_mobility$parks_percent_change_from_base
 cases_mob <- cases_mob[!is.na(cases_mob$county_fips_code.x), ] 
 cases_mob <- cases_mob %>% rename(date=date.x)
 cases_mob <- cases_mob %>% rename(county_fips_code=county_fips_code.x)
-
-# Here is a quick and dirty way to remove features for experimental tests. Default range is (249:270) to remove redundant and NA features
-cases_mob <- setDT(cases_mob)[,(9:270) :=NULL] 
+cases_mob <- setDT(cases_mob)[,(249:270) :=NULL] 
 
 cases_first_day <- cases_mob %>% filter(date == '2021-04-21') 
 cases_first_day <- cases_mob[1:2110,]
@@ -147,6 +145,9 @@ plot(deaths_normalized$deaths_norm, xlim=c(1,300), log='x', type="l", col="red",
 #######   SVM on deaths_normalized   ########################################
 #############################################################################
 
+# Here is a quick and dirty way to remove features for experimental tests. Range of (9:248) will yield ONLY mobility data with delta and class column added.
+deaths_normalized <- setDT(deaths_normalized)[,(9:248) :=NULL] 
+
 # Add Death Labels
 deaths_normalized["Class"] = "MEDIUM"
 deaths_normalized$Class[100 < deaths_normalized$deaths_norm | deaths_normalized$deaths_norm <= 300] = "MEDIUM"
@@ -163,7 +164,7 @@ table(deathsDataTrain$Class)
 table(deathsDataTest$Class)
 #Note Data is still unscaled at this point
 #REMOVE confirmed cases and other features we do not want to train on
-deathsDataTrain2= dplyr::select(deathsDataTrain,  -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+deathsDataTrain2= dplyr::select(deathsDataTrain,  -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases)
 deathsDataTrainScaled = deathsDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 # Training the support vector machine (SVM) model
 svmfit <- svm(formula = Class ~ ., data = deathsDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
@@ -176,7 +177,7 @@ summary(svmfit)
 # Evaluate performance of model on test data set - most important
 #====================================================================
 #REMOVE DEATHS and other features we do not want to train on
-deathsDataTest2=dplyr::select(deathsDataTest, -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+deathsDataTest2=dplyr::select(deathsDataTest, -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases)
 deathsDataTestScaled=deathsDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 # Predicting the Test set results
 svm_pred = predict(svmfit, newdata = deathsDataTestScaled)
@@ -188,6 +189,9 @@ svm_tab
 #############################################################################
 #######   SVM on cases_normalized   #########################################
 #############################################################################
+
+# Here is a quick and dirty way to remove features for experimental tests. Range of (9:248) will yield ONLY mobility data with delta and class column added.
+cases_normalized <- setDT(cases_normalized)[,(9:248) :=NULL] 
 
 # Add Covid Labels
 cases_normalized["Class"] = "MEDIUM"
@@ -205,7 +209,7 @@ table(CovidDataTrain$Class)
 table(CovidDataTest$Class)
 #Note Data is still unscaled at this point
 #REMOVE confirmed cases and other features we do not want to train on
-CovidDataTrain2= dplyr::select(CovidDataTrain, -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTrain2= dplyr::select(CovidDataTrain, -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases)
 CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 # Training the support vector machine (SVM) model
 svmfit <- svm(formula = Class ~ ., data = CovidDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
@@ -218,7 +222,7 @@ summary(svmfit)
 # Evaluate performance of model on test data set - most important
 #====================================================================
 #REMOVE DEATHS and other features we do not want to train on
-CovidDataTest2=dplyr::select(CovidDataTest,  -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases,-total_pop)
+CovidDataTest2=dplyr::select(CovidDataTest,  -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases)
 CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 # Predicting the Test set results
 svm_pred = predict(svmfit, newdata = CovidDataTestScaled)
