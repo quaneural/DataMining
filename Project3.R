@@ -745,7 +745,8 @@ tab1
 #############################################################################
 
 # Training the multinomial model
-multinomCovidModel <- multinom(Class ~., data = CovidDataTrainScaled)
+#multinomCovidModel <- multinom(Class ~., data = CovidDataTrainScaled)
+multinomCovidModel <- multinom(Class ~., data =TopCovidDataTrainScaled)
 # Checking the model
 summary(multinomCovidModel)
 sort(coefficients(multinomCovidModel))
@@ -758,11 +759,14 @@ imp[order(imp$overall,decreasing = T),]
 #====================================================================
 # Evaluate performance of model on test data set - most important
 #====================================================================
-
+PredictCV = predict(multinomCovidModel, newdata = TopCovidDataTestScaled, type = "class",  na.action=na.pass)
 #Confusion Matrix
 tab1 = table(CovidDataTestScaled$Class, PredictCV)
 tab1
-
+#        HIGH LOW MEDIUM
+#HIGH      6   0      1
+#LOW       0  60     70
+#MEDIUM    0  19    286
 
 
 
