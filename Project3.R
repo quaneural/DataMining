@@ -209,6 +209,7 @@ deathDataTestScaled=deathDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 cases_norm_nomob <- setDT(cases_normalized)[,(249:252) :=NULL] 
 deaths_norm_nomob <- setDT(deaths_normalized)[,(249:252) :=NULL] 
 
+
 #NO COUNTY FIPS CODE or COUNTY NAME??
 str(govt_response)
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
