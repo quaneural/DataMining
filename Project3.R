@@ -761,7 +761,7 @@ imp[order(imp$overall,decreasing = T),]
 #====================================================================
 PredictCV = predict(multinomCovidModel, newdata = TopCovidDataTestScaled, type = "class",  na.action=na.pass)
 #Confusion Matrix
-tab1 = table(CovidDataTestScaled$Class, PredictCV)
+tab1 = table(TopCovidDataTestScaled$Class, PredictCV)
 tab1
 #        HIGH LOW MEDIUM
 #HIGH      6   0      1
