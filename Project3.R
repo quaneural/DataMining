@@ -502,6 +502,28 @@ owner_occupied_housing_units_median_value, households_retirement_income,commute_
 ################################################################################################
 #  Feature Importance on Normalized Data
 ################################################################################################
+topcases_norm_features=dplyr::select(cases_norm_nomob , -Class, -total_pop, -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths) 
+topcases_deathnorm_features=dplyr::select(deaths_norm_nomob, -Class, -total_pop, -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths) 
+US_covidNOMOBNorm_weights <- topcases_norm_features %>% chi.squared(cases_norm ~ ., data = .) %>%
+  as_tibble(rownames = "feature") %>%
+  arrange(desc(attr_importance))
+US_covidNOMOBNorm_weights
+#write.table(US_covidNOMOBNorm_weights, file="chisquare_US_covidNOMOBNorm_weights.csv",sep = ",")
+US_deathNOMOBNorm_weights <- topcases_deathnorm_features %>% chi.squared(deaths_norm ~ ., data = .) %>%
+  as_tibble(rownames = "feature") %>%
+  arrange(desc(attr_importance))
+US_deathNOMOBNorm_weights
+#write.table(US_deathNOMOBNorm_weights, file="chisquare_US_deathNOMOBNorm_weights.csv",sep = ",")
+cfs_US_covidNOMOBNorm_features=topcases_norm_features%>%cfs(cases_norm ~ ., data = .)
+cfs_US_covidNOMOBNorm_features
+#[1] "median_year_structure_built"           "vacant_housing_units_for_sale"         "dwellings_2_units"                    
+#[4] "mobile_homes"                          "hispanic_male_55_64"                   "households_public_asst_or_food_stamps"
+#[7] "male_45_64_high_school"  
+cfs_US_deathsNOMOBNorm_features=topcases_deathnorm_features%>%cfs(deaths_norm ~ ., data = .)
+cfs_US_deathsNOMOBNorm_features
+#[1] "median_age"                      "amerindian_pop"                  "other_race_pop"                  "percent_income_spent_on_rent"   
+#[5] "dwellings_2_units"               "commuters_by_subway_or_elevated"
+
 covid_set3 = dplyr::select(cases_normalized, -Class, -total_pop, -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths)
 colnames(covid_set3)
 US_covidNorm_weights <- covid_set3 %>% chi.squared(cases_norm ~ ., data = .) %>%
@@ -530,6 +552,40 @@ cfs_US_deathsNorm_features
 #[4] "percent_income_spent_on_rent"            "dwellings_2_units"                       "commuters_by_subway_or_elevated"        
 #$[7] "workplaces_percent_change_from_baseline
 
+topUSDeathNOMOBFeatures= dplyr::select(deaths_norm_nomob, -Class, -total_pop,  -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths,
+median_age,amerindian_pop, other_race_pop,percent_income_spent_on_rent,dwellings_2_units,commuters_by_subway_or_elevated,
+male_45_64_bachelors_degree,male_75_to_79,male_45_64_graduate_degree,walked_to_work,black_pop,different_house_year_ago_same_city,
+housing_units,not_in_labor_force,female_25_to_29,income_30000_34999,dwellings_2_units,male_pop,pop_25_years_over,one_car,
+income_150000_199999,male_22_to_24,nonfamily_households,poverty,no_cars,white_male_45_54,households,
+occupied_housing_units,commute_5_9_mins,amerindian_including_hispanic,commute_less_10_mins,income_50000_59999,male_15_to_17,
+employed_pop,income_35000_39999,employed_education_health_social,female_5_to_9,occupation_services,
+family_households,group_quarters,employed_arts_entertainment_recreation_accommodation_food,owner_occupied_housing_units_upper_value_quartile,
+rent_10_to_15_percent,rent_40_to_50_percent,other_race_pop,rent_over_50_percent,housing_units_renter_occupied,no_car,dwellings_50_or_more_units,
+dwellings_1_units_attached,female_75_to_79,housing_built_1939_or_earlier,father_one_parent_families_with_young_children,
+male_25_to_29,male_18_to_19,rent_25_to_30_percent,male_80_to_84,asian_male_45_54,male_62_64,female_85_and_over,
+male_50_to_54,female_20,income_10000_14999,commuters_by_carpool,workers_16_and_over,income_125000_149999,
+commuters_16_over,income_per_capita,male_45_64_less_than_9_grade,children_in_single_female_hh,owner_occupied_housing_units,
+rent_35_to_40_percent,hispanic_male_45_54,commute_35_39_mins,income_75000_99999,male_67_to_69,
+employed_agriculture_forestry_fishing_hunting_mining,in_grades_5_to_8,in_grades_1_to_4,male_45_to_64,income_15000_19999,two_parents_in_labor_force_families_with_young_children,
+two_parents_father_in_labor_force_families_with_young_children,mobile_homes,hispanic_pop,hispanic_any_race)
+
+topUSCovidNOMOBFeatures= dplyr::select(cases_norm_nomob, -Class, -total_pop,  -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths,
+median_year_structure_built,vacant_housing_units_for_sale,dwellings_2_units,mobile_homes,hispanic_male_55_64,
+households_public_asst_or_food_stamps,male_45_64_high_school, 
+population_3_years_over,pop_25_64,male_45_64_some_college,commuters_by_car_truck_van,female_20,income_150000_199999,
+population_1_year_and_over,female_45_to_49,female_pop,four_more_cars,one_year_more_college,employed_retail_trade,
+some_college_and_associates_degree,female_18_to_19,white_male_45_54,graduate_professional_degree,employed_pop,
+income_25000_29999,masters_degree,male_10_to_14,dwellings_1_units_attached,male_5_to_9,income_30000_34999,female_15_to_17,
+rent_40_to_50_percent,female_5_to_9,associates_degree,male_65_to_66,one_car,commute_less_10_mins,two_or_more_races_pop,
+families_with_young_children,male_45_64_grade_9_12,median_income,pop_in_labor_force,unemployed_pop,income_35000_39999,
+children_in_single_female_hh,not_us_citizen_pop,male_80_to_84,male_15_to_17,female_10_to_14,housing_built_1939_or_earlier,male_75_to_79,
+male_45_to_49,in_grades_9_to_12,housing_units,male_22_to_24,owner_occupied_housing_units_median_value,commute_25_29_mins,
+commute_40_44_mins,dwellings_2_units,housing_built_2005_or_later,income_100000_124999,different_house_year_ago_same_city,pop_16_over,
+rent_10_to_15_percent,dwellings_10_to_19_units,asian_male_45_54,male_30_to_34,male_60_61,two_parents_father_in_labor_force_families_with_young_children,
+employed_transportation_warehousing_utilities,commuters_drove_alone,income_40000_44999,white_male_55_64,two_parents_in_labor_force_families_with_young_children,
+hispanic_male_55_64,commute_35_39_mins,employed_construction,amerindian_pop,income_per_capita,female_80_to_84,female_75_to_79,
+female_21,employed_science_management_admin_waste,male_21,households,occupied_housing_units,one_parent_families_with_young_children)
+                                       
 topUSDeathNormFeatures= dplyr::select(deaths_normalized, -Class, -total_pop,  -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths,
                                       median_age,amerindian_pop,other_race_pop,percent_income_spent_on_rent,dwellings_2_units,commuters_by_subway_or_elevated,workplaces_percent_change_from_baseline,
                                       male_45_64_bachelors_degree,male_75_to_79,male_45_64_graduate_degree,walked_to_work,black_pop,different_house_year_ago_same_city,
