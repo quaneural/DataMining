@@ -637,7 +637,7 @@ table(topCovidFeatures$Class)
 #######   Logistic Regression Deaths   ##################################
 #############################################################################
 
-LogDeathsModel <- glm(as.factor(Class) ~ . , data = deathsDataTrainScaled, family = "binomial")
+LogDeathsModel <- glm(as.factor(Class) ~ . , data = deathDataTrainScaled, family = "binomial")
 summary(LogDeathsModel)
 # predict(LogDeathsModel, deathDataTestScaled)
 pr <- predict(LogDeathsModel, deathDataTestScaled, type = "response")
@@ -849,7 +849,7 @@ summary(svmfit)
 #====================================================================
 
 # Predicting the Test set results
-svm_pred = predict(svmfit, newdata = deathsDataTestScaled)
+svm_pred = predict(svmfit, newdata = deathDataTestScaled)
 summary(svm_pred)
 
 
@@ -873,9 +873,9 @@ summary(svmfit)
 
 # Predicting the Test set results
 svm_pred = predict(svmfit, newdata = CovidDataTestScaled)
-#Confusion Matrix
-svm_tab = table(CovidDataTestScaled$Class, svm_pred)
-svm_tab
+summary(CovidDataTestScaled$Class)
+summary(svm_pred)
+
 
 
 #############################################################################
