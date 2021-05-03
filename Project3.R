@@ -739,12 +739,6 @@ PredictCV = predict(multinomCovidModel, newdata = TopCovidDataTestScaled, type =
 #Confusion Matrix
 tab1 = table(CovidDataTestScaled$Class, PredictCV)
 tab1
-#        HIGH LOW MEDIUM
-#HIGH      6   0      1
-#LOW       0  60     70
-#MEDIUM    0  19    286
-
-
 
 #############################################################################
 #######   Multinomial Logistic Regression CASES   ###########################
@@ -767,15 +761,18 @@ imp[order(imp$overall,decreasing = T),]
 #====================================================================
 PredictCV = predict(multinomCovidModel, newdata = TopCovidDataTestScaled, type = "class",  na.action=na.pass)
 #Confusion Matrix
-tab1 = table(CovidDataTestScaled$Class, PredictCV)
+tab1 = table(TopCovidDataTestScaled$Class, PredictCV)
 tab1
 #        HIGH LOW MEDIUM
 #HIGH      6   0      1
 #LOW       0  60     70
 #MEDIUM    0  19    286
 
+mlog_accuracy_high = (6+60+286)/(6+60+286+1+19+70)
+mlog_accuracy_high
+#[1] 0.7963801
 
-
+# What if we select fewer features?
 #############################################################################
 #######   NEAREST NEIGHBOR Deaths   #########################################
 #############################################################################
