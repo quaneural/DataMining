@@ -199,6 +199,8 @@ deathDataTrainScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 deathDataTest2=dplyr::select(deathDataTest, -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
 deathDataTestScaled=deathDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 
+cases_norm_nomob <- setDT(cases_normalized)[,(249:252) :=NULL] 
+deaths_norm_nomob <- setDT(deaths_normalized)[,(249:252) :=NULL] 
 
 #NO COUNTY FIPS CODE or COUNTY NAME??
 str(govt_response)
