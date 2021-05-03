@@ -1,5 +1,5 @@
 
-# Author: Daniel Pompa
+# Authors: Daniel Pompa, Bridget Beamon, Rex Lin
 # Project 3: Classification
 # Write-up on OneDrive: https://1drv.ms/w/s!Agvju_On0zbph3KsAWXVzNrx2uaB?e=tVaMK5
 
@@ -9,6 +9,7 @@
 # Classify counties or states in high/low or low/medium/high risk in terms of how affected they would be by a fourth wave.
 # These results can be used to prepare the infrastructure and plan possible interventions (e.g., mask mandates, temporarily closing businesses and schools, etc.). 
 # Early interventions based on data might dampen a severe outbreak and therefore save lives and shorten the length of necessary closings.
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Prompt Guidelines:
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -32,6 +33,26 @@
 # 4. Deployment [5 points]
 # • How would your model be used in practice? What actions would be taken based on your model? How often would the model be updated? Etc.
 # Graduate Students: Exceptional Work [10 points]
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Brainstorming:
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Threshold -> Classify by percentages
+# Create confusion matrices that classify with a range of thresholds
+# Can we:
+# - Use Logistic Regression to determine a case/death rate number for counties or states
+# - Classifier predicts:
+#   - cases (%)
+#   - deaths (%)
+#   - vaccine distribution (Can this be done without time series analysis?)
+# - Assumptions for Feature Selection:
+#   - County density should be a major factor
+#   - Cases/deaths need to be closely tied to density
+#   - Research (maybe just training sample set):
+#     -  mask mandate by state 
+#     -  vaccines administered by state
+# - Businesses implement proof of vaccine policy
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Import libraries
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -51,18 +72,14 @@ library("relaimpo")
 library("randomForest")
 library("fuzzyjoin")
 library("data.table")
-# CART
 library("rpart")
 library("rpart.plot")
-# sample.split
 library("caTools")
-# Cross Validation
 library("caret")
 library("e1071")
-# ROC Curve
 library("ROCR")
 
-
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Establish connection to bigrquery database and query data
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -79,23 +96,23 @@ cases <- dbGetQuery(con,'
   ON covid19.county_fips_code = acs.geo_id
   WHERE CAST(date AS DATETIME) BETWEEN "2021-04-21" AND "2021-04-27"
 ')
-#write_csv(cases, file="CovidCases7days.csv")
 
-# Changed query to match date range in cases query. Should be more manageable size.
 mobility <- dbGetQuery(con,'
   SELECT * 
   FROM `bigquery-public-data.covid19_google_mobility.mobility_report` 
   WHERE country_region LIKE "United States" AND
   CAST(date AS DATETIME) BETWEEN "2021-04-21" AND "2021-04-27"
 ')
-#write_csv(mobility, file="Mobilitys7days.csv")
 
 govt_response <- dbGetQuery(con,'
  SELECT * 
   FROM `bigquery-public-data.covid19_govt_response.oxford_policy_tracker` 
   WHERE country_name LIKE "United_States"
 ')
-#write_csv(govt_response, file="GovResponse.csv")
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Preprocessing/Data Cleaning for Predicting Covid Cases
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 cases_orig <- cases
 
@@ -109,11 +126,6 @@ cases_mob <- cases_mob[!is.na(cases_mob$county_fips_code.x), ]
 cases_mob <- cases_mob %>% rename(date=date.x)
 cases_mob <- cases_mob %>% rename(county_fips_code=county_fips_code.x)
 cases_mob <- setDT(cases_mob)[,(249:270) :=NULL] 
-
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Preprocessing/Data Cleaning for Predicting Covid Cases
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-##### 
 
 cases_first_day <- cases_mob %>% filter(date == '2021-04-21') 
 cases_first_day <- cases_mob[1:2110,]
@@ -153,9 +165,9 @@ CovidDataTest2=dplyr::select(CovidDataTest,  -deaths, -delta, -cases_norm, -coun
 CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # Preprocessing/Data Cleaning for Predicting Covid Deaths
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-##### 
 
 deaths_first_day <- cases_mob %>% filter(date == '2021-04-21')
 deaths_first_day <- cases_mob[1:2110,]
@@ -196,15 +208,12 @@ deathDataTrainScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
 deathDataTest2=dplyr::select(deathDataTest, -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
 deathDataTestScaled=deathDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#  Begin Feature Importance Analysis  --------------------------------------------------------------------------------------------------
-#     CHI SQUARE AND CFS
-#  Find most important features across the US   -----------------------------------------------------------------------------------------
-#---------------------------------------------------------------------------------------------------------------------------------------
 
-################################################################################################
+
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 #  Feature Importance on Normalized Data
-################################################################################################
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 covid_set3 = dplyr::select(cases_normalized, -Class, -total_pop, -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths)
 colnames(covid_set3)
 US_covidNorm_weights <- covid_set3 %>% chi.squared(cases_norm ~ ., data = .) %>%
@@ -340,102 +349,14 @@ TopCovidDataTrainScaled =dplyr::select(CovidDataTrainScaled,Class,
 Top10CovidDataTrainScaled =dplyr::select(CovidDataTrainScaled,Class,
                                          armed_forces,female_female_households,vacant_housing_units, hispanic_male_55_64,commute_90_more_mins,
                                          owner_occupied_housing_units_median_value,hispanic_male_45_54,median_rent,hispanic_pop,median_year_structure_built,
-                                         asian_male_45_54)                                      
-#   End Feature Importance Analysis  ----------------------------------------------------------------------------------------------------
-#-----------------------------------------------------------------------------------------------------------------------------------------
-# Brainstorming:
+                                         asian_male_45_54) 
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Threshold -> Classify by percentages
-# Create confusion matrices that classify with a range of thresholds
-# Can we:
-# - Use Logistic Regression to determine a case/death rate number for counties or states
-# - Classifier predicts:
-#   - cases (%)
-#   - deaths (%)
-#   - vaccine distribution (Can this be done without time series analysis?)
-# - Assumptions for Feature Selection:
-#   - County density should be a major factor
-#   - Cases/deaths need to be closely tied to density
-#   - Research (maybe just training sample set):
-#     -  mask mandate by state 
-#     -  vaccines administered by state
-# - Businesses implement proof of vaccine policy
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # Classification Models:
+#
+# Logistic Regression Deaths   
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    # 1. Logistic Regression
-    # 2. Decision Tree
-    # 3. K Nearest Neighbor
-    # 4. Multinomial Logistic Regression
-    # 5. Support Vector Machine
-    # 6. Artificial Neural Network
-
-# Create confusion matrices to compare model performance
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Here is a quick and dirty way to remove features for experimental tests. Range of (9:248) will yield ONLY mobility data with delta and class column added.
-# Decision Tree and KNN are not able to process Mobility features, so we chop them before beginning out  model building
-cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
-
-summary(cases_normalized$cases_norm)
-
-#Determine thresholds to match CDC
-plot(cases_normalized$cases_norm, xlim=c(1,1000), log='x', type="l", col="orange", lwd=5)#, xlab="time", ylab="concentration")
-
-# Cases' Classes: low < 5000 <= moderate < 15000 <= high
-# Add Covid Labels
-cases_normalized["Class"] = "MEDIUM"
-cases_normalized$Class[5000 < cases_normalized$cases_norm | cases_normalized$cases_norm <= 15000] = "MEDIUM"
-cases_normalized$Class[(cases_normalized$cases_norm <= 5000)] = "LOW"
-cases_normalized$Class[(cases_normalized$cases_norm > 15000)] = "HIGH"
-str(cases_normalized)
-table(cases_normalized$Class)
-
-# Train/Test Split Cases set
-set.seed(100)
-spl = sample.split(cases_normalized$Class, SplitRatio = 0.70)
-CovidDataTrain = subset(cases_normalized, spl == TRUE)
-CovidDataTest = subset(cases_normalized, spl == FALSE)
-table(CovidDataTrain$Class)
-table(CovidDataTest$Class)
-
-#REMOVE confirmed cases and other features we do not want to train on
-CovidDataTrain2= dplyr::select(CovidDataTrain, -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
-CovidDataTrainScaled = CovidDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
-CovidDataTest2=dplyr::select(CovidDataTest,  -deaths, -delta, -cases_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
-CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
-
-# Here is a quick and dirty way to remove features for experimental tests. Range of (9:248) will yield ONLY mobility data with delta and class column added.
-deaths_norm_nomob <-  setDT(deaths_normalized)[,(249:252) :=NULL] 
-
-#Determine thresholds to match CDC
-plot(deaths_normalized$deaths_norm, xlim=c(1,300), log='x', type="l", col="red", lwd=5)#, xlab="time", ylab="concentration")
-
-# Deaths' Classes: low < 100 <= moderate < 300 <= high
-# Add Death Labels
-deaths_normalized["Class"] = "MEDIUM"
-deaths_normalized$Class[100 < deaths_normalized$deaths_norm | deaths_normalized$deaths_norm <= 300] = "MEDIUM"
-deaths_normalized$Class[(deaths_normalized$deaths_norm <= 100)] = "LOW"
-deaths_normalized$Class[(deaths_normalized$deaths_norm > 300)] = "HIGH"
-str(deaths_normalized)
-table(deaths_normalized$Class)
-
-# Train/Test Split Death set
-set.seed(100)
-spl = sample.split(deaths_normalized$Class, SplitRatio = 0.70)
-deathDataTrain = subset(deaths_normalized, spl == TRUE)
-deathDataTest = subset(deaths_normalized, spl == FALSE)
-table(deathDataTrain$Class)
-table(deathDataTest$Class)
-
-#REMOVE confirmed cases and other features we do not want to train on
-deathDataTrain2= dplyr::select(deathDataTrain,  -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
-deathDataTrainScaled = deathDataTrain2 %>% dplyr::mutate_if(is.numeric, scale)
-deathDataTest2=dplyr::select(deathDataTest, -deaths, -delta, -deaths_norm, -county_fips_code, -geo_id, -state_fips_code, -state, -date, -county_name, -confirmed_cases, -total_pop)
-deathDataTestScaled=deathDataTest2%>% dplyr::mutate_if(is.numeric, scale)
-
-#############################################################################
-#######   Logistic Regression Deaths   ##################################
-#############################################################################
 
 LogDeathsModel <- glm(as.factor(Class) ~ . , data = deathDataTrainScaled, family = "binomial")
 summary(LogDeathsModel)
@@ -445,9 +366,10 @@ round(pr, 2)
 hist(pr, breaks=20)
 table(actual=deathDataTestScaled$Class, predicted=pr>.5)
 
-#############################################################################
-#######   Logistic Regression Cases   #######################################
-#############################################################################
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Logistic Regression Cases   
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 LogCovidModel <- glm(as.factor(Class) ~ . , data = CovidDataTrainScaled, family = "binomial")
 summary(LogCovidModel)
@@ -457,64 +379,11 @@ round(pr, 2)
 hist(pr, breaks=20)
 table(actual=CovidDataTestScaled$Class, predicted=pr>.5)
 
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+# Multinomial Logistic Regression Deaths   
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#############################################################################
-#######   Decision Tree Deaths   ############################################
-#############################################################################
-
-#na.exclude(deathDataTrainScaled$Class)
-train_index <-createFolds(deathDataTrainScaled$Class, k =10)
-ctreeFitDeath <- deathDataTrainScaled %>% train(Class ~ .,
-                                                method = "ctree",
-                                                data = .,
-                                                tuneLength = 5,
-                                                trControl = trainControl(method = "cv", indexOut = train_index))
-ctreeFitDeath
-dev.off()
-plot(ctreeFitDeath$finalModel)
-
-# Checking the model
-summary(ctreeFitDeath)
-
-#====================================================================
-# Evaluate performance of model on test data set - most important
-#====================================================================
-prCtreeDeathsDataTestScaled <- predict(ctreeFitDeath, deathsDataTestScaled)
-summary(prCtreeDeathsDataTestScaled)
-as.factor(prCtreeDeathsDataTestScaled)
-ctreeconfusionMatrixDeaths <- confusionMatrix(as.factor(deathsDataTestScaled$Class), prCtreeDeathsDataTestScaled)
-ctreeconfusionMatrixDeaths
-
-
-#############################################################################
-#######   Decision Tree Cases   #############################################
-#############################################################################
-
-train_index <-createFolds(CovidDataTrainScaled$Class, k =10)
-ctreeFitCovid <- CovidDataTrainScaled %>% train(Class ~ .,
-                                                method = "ctree",
-                                                data = .,
-                                                tuneLength = 5,
-                                                trControl = trainControl(method = "cv", indexOut = train_index))
-ctreeFitCovid
-dev.off()
-plot(ctreeFitCovid$finalModel)
-
-#====================================================================
-# Evaluate performance of model on test data set - most important
-#====================================================================
-prCtreeCovidDataTestScaled <- predict(ctreeFitCovid, CovidDataTestScaled)
-summary(prCtreeCovidDataTestScaled)
-as.factor(prCtreeCovidDataTestScaled)
-ctreeconfusionMatrixCovid <- confusionMatrix(as.factor(CovidDataTestScaled$Class), prCtreeCovidDataTestScaled)
-ctreeconfusionMatrixCovid
-
-
-
-#############################################################################
-#######   Multinomial Logistic Regression Deaths   ##########################
-#############################################################################
 # Training the multinomial model
 #multinomCovidModel <- multinom(Class ~., data = CovidDataTrainScaled)
 multinomCovidModel <- multinom(Class ~., data =TopCovidDataTrainScaled)
@@ -527,17 +396,16 @@ imp <- data.frame(overall = imp$Overall,
                   names   = rownames(imp))
 imp[order(imp$overall,decreasing = T),]
 
-#====================================================================
-# Evaluate performance of model on test data set - most important
-#====================================================================
 PredictCV = predict(multinomCovidModel, newdata = TopCovidDataTestScaled, type = "class",  na.action=na.pass)
 #Confusion Matrix
 tab1 = table(CovidDataTestScaled$Class, PredictCV)
 tab1
 
-#############################################################################
-#######   Multinomial Logistic Regression Deaths Normalized
-#############################################################################
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Multinomial Logistic Regression Deaths Normalized  
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # Training the multinomial model
 multinomDeathModel <- multinom(Class ~., data =TopDeathDataTrainScaled)
 # Checking the model
@@ -549,9 +417,6 @@ imp <- data.frame(overall = imp$Overall,
                   names   = rownames(imp))
 imp[order(imp$overall,decreasing = T),]
 
-#====================================================================
-# Evaluate performance of model on test data set - most important
-#====================================================================
 PredictCV = predict(multinomDeathModel, newdata = TopDeathDataTestScaled, type = "class",  na.action=na.pass)
 #Confusion Matrix
 tab1 = table(TopDeathDataTestScaled$Class, PredictCV)
@@ -577,9 +442,11 @@ mlog_deaths_accuracy_high = (34+361+439)/(2+2+80+77+34+361+439)
 mlog_deaths_accuracy_high
 #[1] 0.838191
 
-#############################################################################
-#######   Multinomial Logistic Regression CASES   ###########################
-#############################################################################
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Multinomial Logistic Regression Cases   
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # Training the multinomial model
 #multinomCovidModel <- multinom(Class ~., data = CovidDataTrainScaled)
 multinomCovidModel <- multinom(Class ~., data =TopCovidDataTrainScaled)
@@ -592,9 +459,6 @@ imp <- data.frame(overall = imp$Overall,
                   names   = rownames(imp))
 imp[order(imp$overall,decreasing = T),]
 
-#====================================================================
-# Evaluate performance of model on test data set - most important
-#====================================================================
 PredictCV = predict(multinomCovidModel, newdata = TopCovidDataTestScaled, type = "class",  na.action=na.pass)
 #Confusion Matrix
 tab1 = table(TopCovidDataTestScaled$Class, PredictCV)
@@ -622,9 +486,11 @@ mlog_accuracy_high = (15+126+657)/(73+161+15+126+657)
 mlog_accuracy_high
 #[1] 0.7732558
 
-#############################################################################
-#######   Multinomial Logistic Regression CASES Top 10   ####################
-#############################################################################
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Multinomial Logistic Regression Cases Top 10   
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # Training the multinomial model
 multinomCovidModel <- multinom(Class ~., data =Top10CovidDataTrainScaled)
 # Checking the model
@@ -636,9 +502,6 @@ imp <- data.frame(overall = imp$Overall,
                   names   = rownames(imp))
 imp[order(imp$overall,decreasing = T),]
 
-#====================================================================
-# Evaluate performance of model on test data set - most important
-#====================================================================
 PredictCV = predict(multinomCovidModel, newdata = Top10CovidDataTestScaled, type = "class",  na.action=na.pass)
 #Confusion Matrix
 tab1 = table(Top10CovidDataTestScaled$Class, PredictCV)
@@ -664,9 +527,65 @@ mlog_accuracy_high2 = (5+95+754)/(45+263+5+95+754)
 mlog_accuracy_high2
 #[1] 0.7349398
 
-#############################################################################
-#######   NEAREST NEIGHBOR Deaths   #########################################
-#############################################################################
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Decision Tree Deaths   
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Here is a quick and dirty way to remove features for experimental tests.
+cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
+
+#na.exclude(deathDataTrainScaled$Class)
+train_index <-createFolds(deathDataTrainScaled$Class, k =10)
+ctreeFitDeath <- deathDataTrainScaled %>% train(Class ~ .,
+                                                method = "ctree",
+                                                data = .,
+                                                tuneLength = 5,
+                                                trControl = trainControl(method = "cv", indexOut = train_index))
+ctreeFitDeath
+dev.off()
+plot(ctreeFitDeath$finalModel)
+
+# Checking the model
+summary(ctreeFitDeath)
+
+prCtreeDeathsDataTestScaled <- predict(ctreeFitDeath, deathsDataTestScaled)
+summary(prCtreeDeathsDataTestScaled)
+as.factor(prCtreeDeathsDataTestScaled)
+ctreeconfusionMatrixDeaths <- confusionMatrix(as.factor(deathsDataTestScaled$Class), prCtreeDeathsDataTestScaled)
+ctreeconfusionMatrixDeaths
+
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Decision Tree Cases  
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Here is a quick and dirty way to remove features for experimental tests.
+cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
+
+train_index <-createFolds(CovidDataTrainScaled$Class, k =10)
+ctreeFitCovid <- CovidDataTrainScaled %>% train(Class ~ .,
+                                                method = "ctree",
+                                                data = .,
+                                                tuneLength = 5,
+                                                trControl = trainControl(method = "cv", indexOut = train_index))
+ctreeFitCovid
+dev.off()
+plot(ctreeFitCovid$finalModel)
+
+prCtreeCovidDataTestScaled <- predict(ctreeFitCovid, CovidDataTestScaled)
+summary(prCtreeCovidDataTestScaled)
+as.factor(prCtreeCovidDataTestScaled)
+ctreeconfusionMatrixCovid <- confusionMatrix(as.factor(CovidDataTestScaled$Class), prCtreeCovidDataTestScaled)
+ctreeconfusionMatrixCovid
+
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# K-nearest Neighbor Deaths   
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Here is a quick and dirty way to remove features for experimental tests.
+deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
 
 train_index <-createFolds(deathsDataTrainScaled$Class, k =10)
 knnFitDeath <- deathsDataTrainScaled %>% train(Class ~ ., 
@@ -680,19 +599,19 @@ knnFitDeath
 
 knnFitDeath$finalModel
 
-#====================================================================
-# Evaluate performance of model on test data set - most important
-#====================================================================
 prKNNDeathsDataTestScaled <- predict(knnFitDeath, deathsDataTestScaled)
 summary(prKNNDeathsDataTestScaled)
 as.factor(prKNNDeathsDataTestScaled)
 KNNconfusionMatrixDeaths <- confusionMatrix(as.factor(deathsDataTestScaled$Class), prKNNDeathsDataTestScaled)
 KNNconfusionMatrixDeaths
 
-#############################################################################
-#######   NEAREST NEIGHBOR CASES   ##########################################
-#############################################################################
-#====================================================================
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# K-nearest neighbor Cases   
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Here is a quick and dirty way to remove features for experimental tests.
+deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
 
 train_index <-createFolds(CovidDataTrainScaled$Class, k =10)
 knnFitCase <- CovidDataTrainScaled %>% train(Class ~ ., 
@@ -706,20 +625,16 @@ knnFitCase
 
 knnFitCase$finalModel
 
-#====================================================================
-# Evaluate performance of model on test data set - most important
-#====================================================================
 prKNNCovidDataTestScaled <- predict(knnFitCase, CovidDataTestScaled)
 summary(prKNNCovidDataTestScaled)
 as.factor(prKNNCovidDataTestScaled)
 KNNconfusionMatrixCovid <- confusionMatrix(as.factor(CovidDataTestScaled$Class), prKNNCovidDataTestScaled)
 KNNconfusionMatrixCovid
 
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-#############################################################################
-#######   SVM on deaths_normalized   ########################################
-#############################################################################
+# Support Vector Machine Deaths   
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Training the support vector machine (SVM) model
 svmfit <- svm(formula = Class ~ ., data = deathDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
@@ -728,18 +643,18 @@ print(svmfit)
 # Checking the model
 summary(svmfit)
 
-#====================================================================
-# Evaluate performance of model on test data set - most important
-#====================================================================
+actual <- as.factor(deathDataTestScaled$Class)
 
 # Predicting the Test set results
-svm_pred = predict(svmfit, newdata = deathDataTestScaled)
+svm_pred <- predict(svmfit, newdata = deathDataTestScaled)
 summary(svm_pred)
 
+confusionMatrix(actual, svm_pred)
 
-#############################################################################
-#######   SVM on cases_normalized   #########################################
-#############################################################################
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Support Vector Machine Cases  
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Training the support vector machine (SVM) model
 svmfit <- svm(formula = Class ~ ., data = CovidDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
@@ -748,24 +663,18 @@ print(svmfit)
 # Checking the model
 summary(svmfit)
 
-#====================================================================
-# Evaluate performance of model on test data set - most important
-#====================================================================
-
 actual <- as.factor(CovidDataTestScaled$Class)
 
 # Predicting the Test set results
 svm_pred <- predict(svmfit, newdata = CovidDataTestScaled)
 summary(svm_pred)
 
-confusionMatrix(actual, svm_pred)
+confusionMatrix(CovidDataTest$Class, svm_pred)
 
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-
-#############################################################################
-#######   ANN Deaths   ######################################################
-#############################################################################
+# Artificial Neural Network Deaths   
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Work on parameters of hidden layers of NN
 n <- names(deathDataTrainScaled)
@@ -776,19 +685,13 @@ print(nn)
 # Checking the model
 summary(nn)
 
-#====================================================================
-# Evaluate performance of model on test data set - most important
-#====================================================================
-
 # Predicting the Test set results
 nn_pred = predict(nn, newdata = deathDataTestScaled)
 
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-
-#############################################################################
-#######   ANN CASES   #######################################################
-#############################################################################
+# Artificial Neural Network Cases   
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Work on parameters of hidden layers of NN
 n <- names(CovidDataTrainScaled)
@@ -799,11 +702,7 @@ print(nn)
 # Checking the model
 summary(nn)
 
-#====================================================================
-# Evaluate performance of model on test data set - most important
-#====================================================================
-
 # Predicting the Test set results
 nn_pred = predict(nn, newdata = CovidDataTestScaled)
 
-
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
