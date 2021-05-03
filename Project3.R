@@ -720,27 +720,29 @@ ctreeconfusionMatrixCovid
 #############################################################################
 #######   Multinomial Logistic Regression Deaths   ##########################
 #############################################################################
-
 # Training the multinomial model
-multinomDeathModel <- multinom(Class ~., data = deathDataTrainScaled)
+#multinomCovidModel <- multinom(Class ~., data = CovidDataTrainScaled)
+multinomCovidModel <- multinom(Class ~., data =TopCovidDataTrainScaled)
 # Checking the model
-summary(multinomDeathModel)
-sort(coefficients(multinomDeathModel))
-imp =caret::varImp(multinomDeathModel)
+summary(multinomCovidModel)
+sort(coefficients(multinomCovidModel))
+imp =caret::varImp(multinomCovidModel)
 imp <- as.data.frame(imp)
 imp <- data.frame(overall = imp$Overall,
                   names   = rownames(imp))
 imp[order(imp$overall,decreasing = T),]
 
-###<Bridget Note> Do we want to retrain with fewer features????
 #====================================================================
 # Evaluate performance of model on test data set - most important
 #====================================================================
-
-PredictCV = predict(multinomDeathModel, newdata = deathDataTestScaled, type = "class",  na.action=na.pass)
+PredictCV = predict(multinomCovidModel, newdata = TopCovidDataTestScaled, type = "class",  na.action=na.pass)
 #Confusion Matrix
-tab1 = table(deathDataTestScaled$Class, PredictCV)
+tab1 = table(CovidDataTestScaled$Class, PredictCV)
 tab1
+#        HIGH LOW MEDIUM
+#HIGH      6   0      1
+#LOW       0  60     70
+#MEDIUM    0  19    286
 
 
 
