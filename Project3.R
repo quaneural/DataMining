@@ -127,6 +127,10 @@ cases_one_day <- cases_mob %>% filter(date == '2021-04-27')
 cases_one_day <- cases_one_day %>% mutate(delta = cases_last_day$confirmed_cases - cases_first_day$confirmed_cases)
 cases_one_day <- cases_one_day %>% filter(delta > 0)
 cases_normalized <- cases_one_day %>% mutate(cases_norm = cases_one_day$delta/total_pop*100000)
+
+# Here is a quick and dirty way to remove features for experimental tests. Range of (9:248) will yield ONLY mobility data with delta and class column added.
+cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
+
 summary(cases_normalized$cases_norm)
 
 #Determine thresholds to match CDC
@@ -172,6 +176,9 @@ deaths_one_day <- deaths_one_day %>% mutate(delta = deaths_last_day$deaths - dea
 deaths_one_day <- deaths_one_day %>% filter(delta > 0)
 deaths_normalized <- deaths_one_day %>% mutate(deaths_norm = deaths_one_day$delta/total_pop*100000)
 summary(deaths_normalized$deaths_norm)
+
+# Here is a quick and dirty way to remove features for experimental tests. Range of (9:248) will yield ONLY mobility data with delta and class column added.
+deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
 
 #Determine thresholds to match CDC
 plot(deaths_normalized$deaths_norm, xlim=c(1,300), log='x', type="l", col="red", lwd=5)#, xlab="time", ylab="concentration")
@@ -792,11 +799,9 @@ table(actual=CovidDataTestScaled$Class, predicted=pr>.5)
 #######   Decision Tree Deaths   ############################################
 #############################################################################
 
-deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
-
 #na.exclude(deathDataTrainScaled$Class)
-train_index <-createFolds(deathsDataTrainScaled$Class, k =10)
-ctreeFitDeath <- deathsDataTrainScaled %>% train(Class ~ .,
+train_index <-createFolds(deathDataTrainScaled$Class, k =10)
+ctreeFitDeath <- deathDataTrainScaled %>% train(Class ~ .,
                                                 method = "ctree",
                                                 data = .,
                                                 tuneLength = 5,
@@ -821,9 +826,6 @@ ctreeconfusionMatrixDeaths
 #############################################################################
 #######   Decision Tree Cases   #############################################
 #############################################################################
-
-# Here is a quick and dirty way to remove features for experimental tests. 
-cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
 
 train_index <-createFolds(CovidDataTrainScaled$Class, k =10)
 ctreeFitCovid <- CovidDataTrainScaled %>% train(Class ~ .,
@@ -1001,8 +1003,6 @@ mlog_accuracy_high2
 #############################################################################
 #######   NEAREST NEIGHBOR Deaths   #########################################
 #############################################################################
-#====================================================================
-deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
 
 train_index <-createFolds(deathsDataTrainScaled$Class, k =10)
 knnFitDeath <- deathsDataTrainScaled %>% train(Class ~ ., 
@@ -1029,8 +1029,6 @@ KNNconfusionMatrixDeaths
 #######   NEAREST NEIGHBOR CASES   ##########################################
 #############################################################################
 #====================================================================
-# Here is a quick and dirty way to remove features for experimental tests. 
-cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
 
 train_index <-createFolds(CovidDataTrainScaled$Class, k =10)
 knnFitCase <- CovidDataTrainScaled %>% train(Class ~ ., 
@@ -1059,9 +1057,6 @@ KNNconfusionMatrixCovid
 #######   SVM on deaths_normalized   ########################################
 #############################################################################
 
-# Here is a quick and dirty way to remove features for experimental tests. Range of (9:248) will yield ONLY mobility data with delta and class column added.
-deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
-
 # Training the support vector machine (SVM) model
 svmfit <- svm(formula = Class ~ ., data = deathDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
 print(svmfit)
@@ -1082,9 +1077,6 @@ summary(svm_pred)
 #######   SVM on cases_normalized   #########################################
 #############################################################################
 
-# Here is a quick and dirty way to remove features for experimental tests. Range of (9:248) will yield ONLY mobility data with delta and class column added.
-cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
-
 # Training the support vector machine (SVM) model
 svmfit <- svm(formula = Class ~ ., data = CovidDataTrainScaled, cross=10, type = 'C-classification', kernel = 'linear')
 print(svmfit)
@@ -1096,10 +1088,14 @@ summary(svmfit)
 # Evaluate performance of model on test data set - most important
 #====================================================================
 
+actual <- as.factor(CovidDataTestScaled$Class)
+
 # Predicting the Test set results
-svm_pred = predict(svmfit, newdata = CovidDataTestScaled)
-summary(CovidDataTestScaled$Class)
+svm_pred <- predict(svmfit, newdata = CovidDataTestScaled)
 summary(svm_pred)
+
+confusionMatrix(actual, svm_pred)
+
 
 
 
