@@ -855,10 +855,6 @@ summary(svmfit)
 svm_pred = predict(svmfit, newdata = deathsDataTestScaled)
 summary(svm_pred)
 
-#Confusion Matrix
-svm_tab = table(deathDataTestScaled$Class, svm_pred)
-svm_tab
-
 
 #############################################################################
 #######   SVM on cases_normalized   #########################################
@@ -904,9 +900,7 @@ summary(nn)
 
 # Predicting the Test set results
 nn_pred = predict(nn, newdata = deathDataTestScaled)
-#Confusion Matrix
-nn_tab = table(deathDataTestScaled$Class, nn_pred)
-nn_tab
+
 
 
 
@@ -929,7 +923,5 @@ summary(nn)
 
 # Predicting the Test set results
 nn_pred = predict(nn, newdata = CovidDataTestScaled)
-#Confusion Matrix
-nn_tab = table(CovidDataTestScaled$Class, nn_pred)
-nn_tab
+
 
