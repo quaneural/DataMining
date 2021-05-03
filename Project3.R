@@ -840,6 +840,18 @@ mlog_deaths_accuracy_high = (15+142+77)/(15+142+77+1+2+45+36)
 mlog_deaths_accuracy_high
 #[1] 0.7358491
 
+#How does it perform on training
+PredictCV = predict(multinomDeathModel, newdata = TopDeathDataTrainScaled, type = "class",  na.action=na.pass)
+#Confusion Matrix
+tab1 = table(TopDeathDataTrainScaled$Class, PredictCV)
+tab1
+#         HIGH LOW MEDIUM
+#HIGH     34   0      2
+#LOW       0 361     77
+#MEDIUM    2  80    439
+mlog_deaths_accuracy_high = (34+361+439)/(2+2+80+77+34+361+439)
+mlog_deaths_accuracy_high
+#[1] 0.838191
 
 #############################################################################
 #######   Multinomial Logistic Regression CASES   ###########################
@@ -873,6 +885,19 @@ mlog_accuracy_high = (6+50+279)/(6+50+279+1+26+80)
 mlog_accuracy_high
 #[1] 0.7579186
 
+
+PredictCV = predict(multinomCovidModel, newdata = TopCovidDataTrainScaled, type = "class",  na.action=na.pass)
+#Confusion Matrix
+tab1 = table(TopCovidDataTrainScaled$Class, PredictCV)
+tab1
+#         HIGH LOW MEDIUM
+#HIGH     15   0      0
+#LOW       0 126    161
+#MEDIUM    0  73    657
+mlog_accuracy_high = (15+126+657)/(73+161+15+126+657)
+mlog_accuracy_high
+#[1] 0.7732558
+
 #############################################################################
 #######   Multinomial Logistic Regression CASES Top 10   ####################
 #############################################################################
@@ -901,6 +926,19 @@ tab1
 mlog_accuracy_high2 = (5+44+323)/(1+19+2+109+5+44+323)
 mlog_accuracy_high2
 #[1] 0.7395626
+
+#performance on training model
+PredictCV = predict(multinomCovidModel, newdata = Top10CovidDataTrainScaled, type = "class",  na.action=na.pass)
+#Confusion Matrix
+tab1 = table(Top10CovidDataTrainScaled$Class, PredictCV)
+tab1
+#         HIGH LOW MEDIUM
+#HIGH     15   0      0
+#LOW       0  95    263
+#MEDIUM    0  45    754
+mlog_accuracy_high2 = (5+95+754)/(45+263+5+95+754)
+mlog_accuracy_high2
+#[1] 0.7349398
 
 #############################################################################
 #######   NEAREST NEIGHBOR Deaths   #########################################
