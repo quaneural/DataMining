@@ -374,31 +374,36 @@ covidFeatureSet2train=Top10CovidDataTrainScaled
 covidFeatureSet2test=Top10CovidDataTestScaled 
 #Note  grocery_and_pharmacy_percent_change_from_baseline and retail_and_recreation_percent_change_from_baseline
 #were not in test and train datasets
-covidFeatureSet3train = dplyr::select (CovidDataTrainScaled, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
+covidFeatureSet3train = dplyr::select (CovidDataTrainScaled, Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
                                        workplaces_percent_change_from_baseline)
-covidFeatureSet3test =dplyr::select (CovidDataTestScaled,transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
+covidFeatureSet3test =dplyr::select (CovidDataTestScaled,Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
                                      workplaces_percent_change_from_baseline)
 covidFeatureSet4train = dplyr::select (covidFeatureSet1train, -transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
 covidFeatureSet4test =dplyr::select (covidFeatureSet1test, -transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
 
 
-covidFeatureSet5train =dplyr::select (covidFeatureSet4train,armed_forces,employed_agriculture_forestry_fishing_hunting_mining,four_more_cars,income_per_capita,less_than_high_school_graduate)
-covidFeatureSet5test = dplyr::select (covidFeatureSet4test,armed_forces,employed_agriculture_forestry_fishing_hunting_mining,four_more_cars,income_per_capita,less_than_high_school_graduate)
+covidFeatureSet5train =dplyr::select (covidFeatureSet4train,Class, armed_forces,employed_agriculture_forestry_fishing_hunting_mining,four_more_cars,income_per_capita,less_than_high_school_graduate)
+covidFeatureSet5test = dplyr::select (covidFeatureSet4test,Class, armed_forces,employed_agriculture_forestry_fishing_hunting_mining,four_more_cars,income_per_capita,less_than_high_school_graduate)
 
 deathFeatureSet1train=TopDeathDataTrainScaled
 deathFeatureSet1test = TopDeathDataTestScaled
 deathFeatureSet2train =Top10DeathDataTrainScaled
 deathFeatureSet2test = Top10DeathDataTestScaled
-deathFeatureSet3train =dplyr::select (deathDataTrainScaled, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
+deathFeatureSet3train =dplyr::select (deathDataTrainScaled, Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
                                       workplaces_percent_change_from_baseline)
-deathFeatureSet3test= dplyr::select (deathDataTestScaled, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
+deathFeatureSet3test= dplyr::select (deathDataTestScaled, Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
                                      workplaces_percent_change_from_baseline)
 deathFeatureSet4train = dplyr::select (deathFeatureSet1train, -workplaces_percent_change_from_baseline,-transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
 deathFeatureSet4test =dplyr::select (deathFeatureSet1test , -workplaces_percent_change_from_baseline, -transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
-deathFeatureSet5train =dplyr::select (deathFeatureSet4train,group_quarters,employed_agriculture_forestry_fishing_hunting_mining, 
+deathFeatureSet5train =dplyr::select (deathFeatureSet4train,Class, group_quarters,employed_agriculture_forestry_fishing_hunting_mining, 
                                       different_house_year_ago_different_city,commuters_by_public_transportation, vacant_housing_units)
-deathFeatureSet5test = dplyr::select (deathFeatureSet4test,group_quarters,employed_agriculture_forestry_fishing_hunting_mining, 
+deathFeatureSet5test = dplyr::select (deathFeatureSet4test,Class, group_quarters,employed_agriculture_forestry_fishing_hunting_mining, 
                                       different_house_year_ago_different_city,commuters_by_public_transportation, vacant_housing_units)
+
+covidtrainFeatureSets=c( list(covidFeatureSet1train),list(covidFeatureSet2train),list(covidFeatureSet3train),list(covidFeatureSet4train),list(covidFeatureSet5train) )
+covidtestFeatureSets=c( list(covidFeatureSet1test),list(covidFeatureSet2test),list(covidFeatureSet3test),list(covidFeatureSet4test),list(covidFeatureSet5test) )
+deathtrainFeatureSets=c( list(deathFeatureSet1train),list(deathFeatureSet2train),list(deathFeatureSet3train),list(deathFeatureSet4train),list(deathFeatureSet5train) )
+deathtestFeatureSets=c( list(deathFeatureSet1test),list(deathFeatureSet2test),list(deathFeatureSet3test),list(deathFeatureSet4test),list(deathFeatureSet5test) )
 
 # --------------
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -431,152 +436,140 @@ table(actual=CovidDataTestScaled$Class, predicted=pr>.5)
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# Multinomial Logistic Regression Deaths   
+# Multinomial Logistic Regression All Death Feature Sets   
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Training the multinomial models
+j=0
+multinomDeathModels = list()
+for ( i in 1:length(deathtrainFeatureSets)){
+   j = j+1
+   multinomDeathModel <- multinom(Class ~., data =deathtrainFeatureSets[[i]])
+   if (j ==1){
+     multinomDeathModels = list(multinomDeathModel)
+   }
+   else{
+     multinomDeathModels = c(multinomDeathModels,list(multinomDeathModel))
+   }
 
-# Training the multinomial model
-#multinomCovidModel <- multinom(Class ~., data = CovidDataTrainScaled)
-multinomCovidModel <- multinom(Class ~., data =TopCovidDataTrainScaled)
-# Checking the model
-summary(multinomCovidModel)
-sort(coefficients(multinomCovidModel))
-imp =caret::varImp(multinomCovidModel)
-imp <- as.data.frame(imp)
-imp <- data.frame(overall = imp$Overall,
-                  names   = rownames(imp))
-imp[order(imp$overall,decreasing = T),]
-
-PredictCV = predict(multinomCovidModel, newdata = TopCovidDataTestScaled, type = "class",  na.action=na.pass)
+   # Checking the model
+   #summary(multinomDeathModel)
+   #sort(coefficients(multinomDeathModel))
+   #imp =caret::varImp(multinomDeathModel)
+   #imp <- as.data.frame(imp)
+   #imp <- data.frame(overall = imp$Overall,
+    #              names   = rownames(imp))
+   #imp[order(imp$overall,decreasing = T),]
+}
+## Predict and print Confusion Matrix for all models using Training sets
+j=0
+deathPredictCVs = list()
+for ( i in 1:length(multinomDeathModels)){
+    j = j+1
+    PredictCV = predict(multinomDeathModels[[i]], newdata = deathtrainFeatureSets[[j]], type = "class",  na.action=na.pass)
+    deathPredictCVs = c(deathPredictCVs, list(PredictCV))
+}
+length(deathPredictCVs)
 #Confusion Matrix
-tab1 = table(CovidDataTestScaled$Class, PredictCV)
-tab1
-
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# Multinomial Logistic Regression Deaths Normalized  
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# Training the multinomial model
-multinomDeathModel <- multinom(Class ~., data =TopDeathDataTrainScaled)
-# Checking the model
-summary(multinomDeathModel)
-sort(coefficients(multinomDeathModel))
-imp =caret::varImp(multinomDeathModel)
-imp <- as.data.frame(imp)
-imp <- data.frame(overall = imp$Overall,
-                  names   = rownames(imp))
-imp[order(imp$overall,decreasing = T),]
-
-PredictCV = predict(multinomDeathModel, newdata = TopDeathDataTestScaled, type = "class",  na.action=na.pass)
+j=0
+deathConfusionMatrix = list()
+for (i in 1:length(deathPredictCVs)){
+  j= j+1
+  tab1 = table(deathtrainFeatureSets[[j]]$Class, deathPredictCVs[[i]])
+  deathConfusionMatrix = c(deathConfusionMatrix, list(tab1))
+}  
+length(deathConfusionMatrix)
+for ( i in 1:length(deathConfusionMatrix) ){
+  out=deathConfusionMatrix[[i]]
+  print(out) 
+  print(((deathConfusionMatrix[[i]][1,1]+deathConfusionMatrix[[i]][2,2]+deathConfusionMatrix[[i]][3,3])) /sum(deathConfusionMatrix[[i]]))
+}
+## Predict and print Confusion Matrix for all models using Test sets
+j=0
+deathPredictCVs = list()
+for ( i in 1:length(multinomDeathModels)){
+  j = j+1
+  PredictCV = predict(multinomDeathModels[[i]], newdata = deathtestFeatureSets[[j]], type = "class",  na.action=na.pass)
+  deathPredictCVs = c(deathPredictCVs, list(PredictCV))
+}
+length(deathPredictCVs)
 #Confusion Matrix
-tab1 = table(TopDeathDataTestScaled$Class, PredictCV)
-tab1
-#         HIGH LOW MEDIUM
-#HIGH     15   0      2
-#LOW       1 142     36
-#MEDIUM    0  45    177
-mlog_deaths_accuracy_high = (15+142+77)/(15+142+77+1+2+45+36)
-mlog_deaths_accuracy_high
-#[1] 0.7358491
-
-#How does it perform on training
-PredictCV = predict(multinomDeathModel, newdata = TopDeathDataTrainScaled, type = "class",  na.action=na.pass)
-#Confusion Matrix
-tab1 = table(TopDeathDataTrainScaled$Class, PredictCV)
-tab1
-#         HIGH LOW MEDIUM
-#HIGH     34   0      2
-#LOW       0 361     77
-#MEDIUM    2  80    439
-mlog_deaths_accuracy_high = (34+361+439)/(2+2+80+77+34+361+439)
-mlog_deaths_accuracy_high
-#[1] 0.838191
-
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# Multinomial Logistic Regression Cases   
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# Training the multinomial model
-#multinomCovidModel <- multinom(Class ~., data = CovidDataTrainScaled)
-multinomCovidModel <- multinom(Class ~., data =TopCovidDataTrainScaled)
-# Checking the model
-summary(multinomCovidModel)
-sort(coefficients(multinomCovidModel))
-imp =caret::varImp(multinomCovidModel)
-imp <- as.data.frame(imp)
-imp <- data.frame(overall = imp$Overall,
-                  names   = rownames(imp))
-imp[order(imp$overall,decreasing = T),]
-
-PredictCV = predict(multinomCovidModel, newdata = TopCovidDataTestScaled, type = "class",  na.action=na.pass)
-#Confusion Matrix
-tab1 = table(TopCovidDataTestScaled$Class, PredictCV)
-tab1
-PredictCV
-#         HIGH LOW MEDIUM
-#HIGH      6   0      1
-#LOW       0  50     80
-#MEDIUM    0  26    279
-
-mlog_accuracy_high = (6+50+279)/(6+50+279+1+26+80)
-mlog_accuracy_high
-#[1] 0.7579186
-
-
-PredictCV = predict(multinomCovidModel, newdata = TopCovidDataTrainScaled, type = "class",  na.action=na.pass)
-#Confusion Matrix
-tab1 = table(TopCovidDataTrainScaled$Class, PredictCV)
-tab1
-#         HIGH LOW MEDIUM
-#HIGH     15   0      0
-#LOW       0 126    161
-#MEDIUM    0  73    657
-mlog_accuracy_high = (15+126+657)/(73+161+15+126+657)
-mlog_accuracy_high
-#[1] 0.7732558
+j=0
+deathConfusionMatrix = list()
+for (i in 1:length(deathPredictCVs)){
+  j= j+1
+  tab1 = table(deathtestFeatureSets[[j]]$Class, deathPredictCVs[[i]])
+  deathConfusionMatrix = c(deathConfusionMatrix, list(tab1))
+}  
+length(deathConfusionMatrix)
+for ( i in 1:length(deathConfusionMatrix) ){
+  out=deathConfusionMatrix[[i]]
+  print(out) 
+  print(((deathConfusionMatrix[[i]][1,1]+deathConfusionMatrix[[i]][2,2]+deathConfusionMatrix[[i]][3,3])) /sum(deathConfusionMatrix[[i]]))
+}
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# Multinomial Logistic Regression Cases Top 10   
+# Multinomial Logistic Regression All Covid Feature Sets
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# Training the multinomial model
-multinomCovidModel <- multinom(Class ~., data =Top10CovidDataTrainScaled)
-# Checking the model
-summary(multinomCovidModel)
-sort(coefficients(multinomCovidModel))
-imp =caret::varImp(multinomCovidModel)
-imp <- as.data.frame(imp)
-imp <- data.frame(overall = imp$Overall,
-                  names   = rownames(imp))
-imp[order(imp$overall,decreasing = T),]
-
-PredictCV = predict(multinomCovidModel, newdata = Top10CovidDataTestScaled, type = "class",  na.action=na.pass)
+j=0
+multinomCovidModels = list()
+for ( i in 1:length(covidtrainFeatureSets)){
+  j = j+1
+  multinomCovidModel <- multinom(Class ~., data =covidtrainFeatureSets[[i]])
+  if (j ==1){
+    multinomCovidModels = list(multinomCovidModel)
+  }
+  else{
+    multinomCovidModels = c(multinomCovidModels,list(multinomCovidModel))
+  }
+} 
+## Predict and print Confusion Matrix for all models using Training sets
+j=0
+covidPredictCVs = list()
+for ( i in 1:length(multinomCovidModels)){
+  j = j+1
+  PredictCV = predict(multinomCovidModels[[i]], newdata = covidtrainFeatureSets[[j]], type = "class",  na.action=na.pass)
+  covidPredictCVs = c(covidPredictCVs, list(PredictCV))
+}
+length(covidPredictCVs)
 #Confusion Matrix
-tab1 = table(Top10CovidDataTestScaled$Class, PredictCV)
-tab1
-#        HIGH LOW MEDIUM
-#HIGH      5   0      2
-#LOW       0  44    109
-#MEDIUM    1  19    323
-mlog_accuracy_high2 = (5+44+323)/(1+19+2+109+5+44+323)
-mlog_accuracy_high2
-#[1] 0.7395626
+j=0
+covidConfusionMatrix = list()
+for (i in 1:length(covidPredictCVs)){
+  j= j+1
+  tab1 = table(covidtrainFeatureSets[[j]]$Class, covidPredictCVs[[i]])
+  covidConfusionMatrix = c(covidConfusionMatrix, list(tab1))
+}  
+length(covidConfusionMatrix)
+for ( i in 1:length(covidConfusionMatrix) ){
+  out=covidConfusionMatrix[[i]]
+  print(out) 
+  print(((covidConfusionMatrix[[i]][1,1]+covidConfusionMatrix[[i]][2,2]+covidConfusionMatrix[[i]][3,3])) /sum(covidConfusionMatrix[[i]]))
+}
 
-#performance on training model
-PredictCV = predict(multinomCovidModel, newdata = Top10CovidDataTrainScaled, type = "class",  na.action=na.pass)
+## Predict and print Confusion Matrix for all models using Test sets
+j=0
+covidPredictCVs = list()
+for ( i in 1:length(multinomCovidModels)){
+  j = j+1
+  PredictCV = predict(multinomCovidModels[[i]], newdata = covidtestFeatureSets[[j]], type = "class",  na.action=na.pass)
+  covidPredictCVs = c(covidPredictCVs, list(PredictCV))
+}
+length(covidPredictCVs)
 #Confusion Matrix
-tab1 = table(Top10CovidDataTrainScaled$Class, PredictCV)
-tab1
-#         HIGH LOW MEDIUM
-#HIGH     15   0      0
-#LOW       0  95    263
-#MEDIUM    0  45    754
-mlog_accuracy_high2 = (5+95+754)/(45+263+5+95+754)
-mlog_accuracy_high2
-#[1] 0.7349398
-
+j=0
+covidConfusionMatrix = list()
+for (i in 1:length(covidPredictCVs)){
+  j= j+1
+  tab1 = table(covidtestFeatureSets[[j]]$Class, covidPredictCVs[[i]])
+  covidConfusionMatrix = c(covidConfusionMatrix, list(tab1))
+}  
+length(covidConfusionMatrix)
+for ( i in 1:length(covidConfusionMatrix) ){
+  out=covidConfusionMatrix[[i]]
+  print(out) 
+  print(((covidConfusionMatrix[[i]][1,1]+covidConfusionMatrix[[i]][2,2]+covidConfusionMatrix[[i]][3,3])) /sum(covidConfusionMatrix[[i]]))
+}
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Decision Tree Deaths   
