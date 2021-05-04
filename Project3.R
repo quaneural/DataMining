@@ -516,6 +516,7 @@ for ( i in 1:length(deathConfusionMatrix) ){
 # Multinomial Logistic Regression All Covid Feature Sets
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 j=0
+
 multinomCovidModels = list()
 for ( i in 1:length(covidtrainFeatureSets)){
   j = j+1
