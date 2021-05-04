@@ -135,11 +135,14 @@ cases_one_day <- cases_mob %>% filter(date == '2021-04-27')
 cases_one_day <- cases_one_day %>% mutate(delta = cases_last_day$confirmed_cases - cases_first_day$confirmed_cases)
 cases_one_day <- cases_one_day %>% filter(delta > 0)
 cases_normalized <- cases_one_day %>% mutate(cases_norm = cases_one_day$delta/total_pop*100000)
-
 summary(cases_normalized$cases_norm)
 
 #Determine thresholds to match CDC
 plot(cases_normalized$cases_norm, xlim=c(1,1000), log='x', type="l", col="orange", lwd=5)#, xlab="time", ylab="concentration")
+
+# For Decision Tree and KNN models, here is a quick way to remove mobility features.
+cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
+summary(cases_normalized$cases_norm)
 
 # Cases' Classes: low < 5000 <= moderate < 15000 <= high
 # Add Covid Labels
@@ -174,9 +177,6 @@ deaths_first_day <- cases_mob[1:2110,]
 deaths_last_day <- cases_mob %>% filter(date == '2021-04-27')
 deaths_one_day <- cases_mob %>% filter(date == '2021-04-27')
 
-#df <- cbind(deaths_first_day$deaths,cases_last_day$deaths,cases_one_day$delta)
-#df <- as.data.frame(df)
-
 deaths_one_day <- deaths_one_day %>% mutate(delta = deaths_last_day$deaths - deaths_first_day$deaths)
 deaths_one_day <- deaths_one_day %>% filter(delta > 0)
 deaths_normalized <- deaths_one_day %>% mutate(deaths_norm = deaths_one_day$delta/total_pop*100000)
@@ -184,6 +184,10 @@ summary(deaths_normalized$deaths_norm)
 
 #Determine thresholds to match CDC
 plot(deaths_normalized$deaths_norm, xlim=c(1,300), log='x', type="l", col="red", lwd=5)#, xlab="time", ylab="concentration")
+
+# For Decision Tree and KNN models, here is a quick way to remove mobility features.
+deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
+summary(deaths_normalized$deaths_norm)
 
 # Deaths' Classes: low < 100 <= moderate < 300 <= high
 # Add Death Labels
@@ -575,9 +579,6 @@ for ( i in 1:length(covidConfusionMatrix) ){
 # Decision Tree Deaths   
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# Here is a quick and dirty way to remove features for experimental tests.
-cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
-
 #na.exclude(deathDataTrainScaled$Class)
 train_index <-createFolds(deathDataTrainScaled$Class, k =10)
 ctreeFitDeath <- deathDataTrainScaled %>% train(Class ~ .,
@@ -592,19 +593,16 @@ plot(ctreeFitDeath$finalModel)
 # Checking the model
 summary(ctreeFitDeath)
 
-prCtreeDeathsDataTestScaled <- predict(ctreeFitDeath, deathsDataTestScaled)
-summary(prCtreeDeathsDataTestScaled)
-as.factor(prCtreeDeathsDataTestScaled)
-ctreeconfusionMatrixDeaths <- confusionMatrix(as.factor(deathsDataTestScaled$Class), prCtreeDeathsDataTestScaled)
+prCtreeDeathDataTestScaled <- predict(ctreeFitDeath, deathDataTestScaled)
+summary(prCtreeDeathDataTestScaled)
+as.factor(prCtreeDeathDataTestScaled)
+ctreeconfusionMatrixDeaths <- confusionMatrix(as.factor(deathDataTestScaled$Class), prCtreeDeathDataTestScaled)
 ctreeconfusionMatrixDeaths
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Decision Tree Cases  
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# Here is a quick and dirty way to remove features for experimental tests.
-cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
 
 train_index <-createFolds(CovidDataTrainScaled$Class, k =10)
 ctreeFitCovid <- CovidDataTrainScaled %>% train(Class ~ .,
@@ -627,11 +625,8 @@ ctreeconfusionMatrixCovid
 # K-nearest Neighbor Deaths   
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# Here is a quick and dirty way to remove features for experimental tests.
-deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
-
-train_index <-createFolds(deathsDataTrainScaled$Class, k =10)
-knnFitDeath <- deathsDataTrainScaled %>% train(Class ~ ., 
+train_index <-createFolds(deathDataTrainScaled$Class, k =10)
+knnFitDeath <- deathDataTrainScaled %>% train(Class ~ ., 
                                               method = "knn", 
                                               data= .,
                                               preProcess = "scale", 
@@ -642,19 +637,16 @@ knnFitDeath
 
 knnFitDeath$finalModel
 
-prKNNDeathsDataTestScaled <- predict(knnFitDeath, deathsDataTestScaled)
-summary(prKNNDeathsDataTestScaled)
-as.factor(prKNNDeathsDataTestScaled)
-KNNconfusionMatrixDeaths <- confusionMatrix(as.factor(deathsDataTestScaled$Class), prKNNDeathsDataTestScaled)
+prKNNDeathDataTestScaled <- predict(knnFitDeath, deathDataTestScaled)
+summary(prKNNDeathDataTestScaled)
+as.factor(prKNNDeathDataTestScaled)
+KNNconfusionMatrixDeaths <- confusionMatrix(as.factor(deathDataTestScaled$Class), prKNNDeathDataTestScaled)
 KNNconfusionMatrixDeaths
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # K-nearest neighbor Cases   
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# Here is a quick and dirty way to remove features for experimental tests.
-deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
 
 train_index <-createFolds(CovidDataTrainScaled$Class, k =10)
 knnFitCase <- CovidDataTrainScaled %>% train(Class ~ ., 
