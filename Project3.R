@@ -324,7 +324,23 @@ TopDeathDataTrainScaled =dplyr::select(deathDataTrainScaled,Class,
                                        commuters_by_bus, workplaces_percent_change_from_baseline, parks_percent_change_from_baseline,transit_stations_percent_change_from_baseline,
                                        armed_forces, amerindian_pop, owner_occupied_housing_units_median_value, median_year_structure_built,median_income,other_race_pop,
                                        high_school_diploma, group_quarters, black_including_hispanic,commuters_by_subway_or_elevated,less_than_high_school_graduate,
-                                       high_school_including_ged)                                     
+                                       high_school_including_ged)
+TopDeathDataTestScaled =dplyr::select(deathDataTestScaled,Class,
+                                       dwellings_2_units,employed_agriculture_forestry_fishing_hunting_mining, different_house_year_ago_different_city,two_or_more_races_pop,
+                                       mobile_homes, male_45_64_high_school,owner_occupied_housing_units_lower_value_quartile, percent_income_spent_on_rent,
+                                       vacant_housing_units,white_male_45_54, median_age,vacant_housing_units_for_sale,commuters_by_public_transportation,
+                                       commuters_by_bus, workplaces_percent_change_from_baseline, parks_percent_change_from_baseline,transit_stations_percent_change_from_baseline,
+                                       armed_forces, amerindian_pop, owner_occupied_housing_units_median_value, median_year_structure_built,median_income,other_race_pop,
+                                       high_school_diploma, group_quarters, black_including_hispanic,commuters_by_subway_or_elevated,less_than_high_school_graduate,
+                                       high_school_including_ged)
+Top10DeathDataTrainScaled =dplyr::select(deathDataTrainScaled,Class,
+                                       dwellings_2_units,employed_agriculture_forestry_fishing_hunting_mining, different_house_year_ago_different_city,two_or_more_races_pop,
+                                       mobile_homes, male_45_64_high_school,owner_occupied_housing_units_lower_value_quartile, percent_income_spent_on_rent,
+                                       vacant_housing_units,white_male_45_54) 
+Top10DeathDataTestScaled =dplyr::select(deathDataTestScaled,Class,
+                                         dwellings_2_units,employed_agriculture_forestry_fishing_hunting_mining, different_house_year_ago_different_city,two_or_more_races_pop,
+                                         mobile_homes, male_45_64_high_school,owner_occupied_housing_units_lower_value_quartile, percent_income_spent_on_rent,
+                                         vacant_housing_units,white_male_45_54)
 topCovidNormFeatures = dplyr::select(cases_normalized, -Class, -total_pop, -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths,
                                      armed_forces,female_female_households,vacant_housing_units, hispanic_male_55_64,commute_90_more_mins,
                                      owner_occupied_housing_units_median_value,hispanic_male_45_54,median_rent,hispanic_pop,median_year_structure_built,
@@ -355,7 +371,41 @@ Top10CovidDataTrainScaled =dplyr::select(CovidDataTrainScaled,Class,
                                          owner_occupied_housing_units_median_value,hispanic_male_45_54,median_rent,hispanic_pop,median_year_structure_built,
                                          asian_male_45_54) 
 
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#sets 1- 3 include mobility data, sets 4 and 5 do not
+covidFeatureSet1train=TopCovidDataTrainScaled
+covidFeatureSet1test= TopCovidDataTestScaled
+covidFeatureSet2train=Top10CovidDataTrainScaled
+covidFeatureSet2test=Top10CovidDataTestScaled 
+#Note  grocery_and_pharmacy_percent_change_from_baseline and retail_and_recreation_percent_change_from_baseline
+#were not in test and train datasets
+covidFeatureSet3train = dplyr::select (CovidDataTrainScaled, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
+                                       workplaces_percent_change_from_baseline)
+covidFeatureSet3test =dplyr::select (CovidDataTestScaled,transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
+                                     workplaces_percent_change_from_baseline)
+covidFeatureSet4train = dplyr::select (covidFeatureSet1train, -transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
+covidFeatureSet4test =dplyr::select (covidFeatureSet1test, -transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
+
+
+covidFeatureSet5train =dplyr::select (covidFeatureSet4train,armed_forces,employed_agriculture_forestry_fishing_hunting_mining,four_more_cars,income_per_capita,less_than_high_school_graduate)
+covidFeatureSet5test = dplyr::select (covidFeatureSet4test,armed_forces,employed_agriculture_forestry_fishing_hunting_mining,four_more_cars,income_per_capita,less_than_high_school_graduate)
+
+deathFeatureSet1train=TopDeathDataTrainScaled
+deathFeatureSet1test = TopDeathDataTestScaled
+deathFeatureSet2train =Top10DeathDataTrainScaled
+deathFeatureSet2test = Top10DeathDataTestScaled
+deathFeatureSet3train =dplyr::select (deathDataTrainScaled, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
+                                      workplaces_percent_change_from_baseline)
+deathFeatureSet3test= dplyr::select (deathDataTestScaled, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
+                                     workplaces_percent_change_from_baseline)
+deathFeatureSet4train = dplyr::select (deathFeatureSet1train, -workplaces_percent_change_from_baseline,-transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
+deathFeatureSet4test =dplyr::select (deathFeatureSet1test , -workplaces_percent_change_from_baseline, -transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
+deathFeatureSet5train =dplyr::select (deathFeatureSet4train,group_quarters,employed_agriculture_forestry_fishing_hunting_mining, 
+                                      different_house_year_ago_different_city,commuters_by_public_transportation, vacant_housing_units)
+deathFeatureSet5test = dplyr::select (deathFeatureSet4test,group_quarters,employed_agriculture_forestry_fishing_hunting_mining, 
+                                      different_house_year_ago_different_city,commuters_by_public_transportation, vacant_housing_units)
+
+# --------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Classification Models:
 #
