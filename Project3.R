@@ -1,7 +1,7 @@
 
 # Authors: Daniel Pompa, Bridget Beamon, Rex Lin
 # Project 3: Classification
-# Write-up on OneDrive: https://1drv.ms/w/s!Agvju_On0zbph3KsAWXVzNrx2uaB?e=tVaMK5
+# Write-up on OneDrive:      
 
 
 # Prompt:
@@ -404,10 +404,10 @@ deathFeatureSet5train =dplyr::select (deathFeatureSet4train,Class, group_quarter
 deathFeatureSet5test = dplyr::select (deathFeatureSet4test,Class, group_quarters,employed_agriculture_forestry_fishing_hunting_mining, 
                                       different_house_year_ago_different_city,commuters_by_public_transportation, vacant_housing_units)
 
-covidtrainFeatureSets=c( list(covidFeatureSet1train),list(covidFeatureSet2train),list(covidFeatureSet3train),list(covidFeatureSet4train),list(covidFeatureSet5train) )
-covidtestFeatureSets=c( list(covidFeatureSet1test),list(covidFeatureSet2test),list(covidFeatureSet3test),list(covidFeatureSet4test),list(covidFeatureSet5test) )
-deathtrainFeatureSets=c( list(deathFeatureSet1train),list(deathFeatureSet2train),list(deathFeatureSet3train),list(deathFeatureSet4train),list(deathFeatureSet5train) )
-deathtestFeatureSets=c( list(deathFeatureSet1test),list(deathFeatureSet2test),list(deathFeatureSet3test),list(deathFeatureSet4test),list(deathFeatureSet5test) )
+covidtrainFeatureSets=c( list(covidFeatureSet1train),list(covidFeatureSet2train),list(covidFeatureSet3train),list(covidFeatureSet4train),list(covidFeatureSet5train),list(CovidDataTrainScaled) )
+covidtestFeatureSets=c( list(covidFeatureSet1test),list(covidFeatureSet2test),list(covidFeatureSet3test),list(covidFeatureSet4test),list(covidFeatureSet5test),list(CovidDataTestScaled) )
+deathtrainFeatureSets=c( list(deathFeatureSet1train),list(deathFeatureSet2train),list(deathFeatureSet3train),list(deathFeatureSet4train),list(deathFeatureSet5train), list(deathDataTrainScaled) )
+deathtestFeatureSets=c( list(deathFeatureSet1test),list(deathFeatureSet2test),list(deathFeatureSet3test),list(deathFeatureSet4test),list(deathFeatureSet5test), list(deathDataTestScaled) )
 
 # --------------
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
