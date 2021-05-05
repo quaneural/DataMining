@@ -403,9 +403,19 @@ deathFeatureSet5test = dplyr::select (deathFeatureSet4test,Class, group_quarters
                                       different_house_year_ago_different_city,commuters_by_public_transportation, vacant_housing_units)
 
 cfsDeathFeatureSettrain = dplyr::select (deathDataTrainScaled, Class,median_age,amerindian_pop,other_race_pop,percent_income_spent_on_rent,dwellings_2_units,commuters_by_subway_or_elevated)
-cfsCovidFeatureSettrain = dplyr::select (CovidDataTrainScaled, Class,vacant_housing_units_for_sale,hispanic_male_55_64,male_45_64_high_school,workplaces_percent_change_from_baseline)
+cfsCovidFeatureSettrain = dplyr::select (CovidDataTrainScaled, Class,vacant_housing_units_for_sale,hispanic_male_55_64,male_45_64_high_school)
 cfsDeathFeatureSettest = dplyr::select (deathDataTestScaled, Class,median_age,amerindian_pop,other_race_pop,percent_income_spent_on_rent,dwellings_2_units,commuters_by_subway_or_elevated)
-cfsCovidFeatureSettest = dplyr::select (CovidDataTestScaled, Class,vacant_housing_units_for_sale,hispanic_male_55_64,male_45_64_high_school,workplaces_percent_change_from_baseline)
+cfsCovidFeatureSettest = dplyr::select (CovidDataTestScaled, Class,vacant_housing_units_for_sale,hispanic_male_55_64,male_45_64_high_school)
+
+# All features minus mobility
+deathFeatureSet6train = dplyr::select (deathDataTrainScaled, -workplaces_percent_change_from_baseline,-transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline,
+                                       -retail_and_recreation_percent_change_from_baseline, -grocery_and_pharmacy_percent_change_from_baseline, -residential_percent_change_from_baseline)
+covidFeatureSet6train = dplyr::select (CovidDataTrainScaled, -workplaces_percent_change_from_baseline,-transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline,
+                                       -retail_and_recreation_percent_change_from_baseline, -grocery_and_pharmacy_percent_change_from_baseline, -residential_percent_change_from_baseline)
+deathFeatureSet6test = dplyr::select (deathDataTestScaled, -workplaces_percent_change_from_baseline,-transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline,
+                                      -retail_and_recreation_percent_change_from_baseline, -grocery_and_pharmacy_percent_change_from_baseline, -residential_percent_change_from_baseline)
+covidFeatureSet6test = dplyr::select (CovidDataTestScaled, -workplaces_percent_change_from_baseline,-transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline,
+                                      -retail_and_recreation_percent_change_from_baseline, -grocery_and_pharmacy_percent_change_from_baseline, -residential_percent_change_from_baseline)
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -417,10 +427,61 @@ covidtestFeatureSets = c( list(covidFeatureSet1test),list(covidFeatureSet2test),
 deathtrainFeatureSets = c( list(deathFeatureSet1train),list(deathFeatureSet2train),list(deathFeatureSet3train),list(deathFeatureSet4train),list(deathFeatureSet5train), list(deathDataTrainScaled), list(cfsDeathFeatureSettrain) )
 deathtestFeatureSets = c( list(deathFeatureSet1test),list(deathFeatureSet2test),list(deathFeatureSet3test),list(deathFeatureSet4test),list(deathFeatureSet5test), list(deathDataTestScaled) ,list(cfsDeathFeatureSettest))
 
-covidtrainFeatureSets2 = c( list(covidFeatureSet2train), list(covidFeatureSet4train),list(covidFeatureSet5train), list(cfsCovidFeatureSettrain))
-covidtestFeatureSets2 = c( list(covidFeatureSet2test), list(covidFeatureSet4test),list(covidFeatureSet5test), list(cfsCovidFeatureSettest) )
-deathtrainFeatureSets2 = c( list(deathFeatureSet2train), list(deathFeatureSet4train),list(deathFeatureSet5train), list(cfsDeathFeatureSettrain) )
-deathtestFeatureSets2 = c( list(deathFeatureSet2test), list(deathFeatureSet4test),list(deathFeatureSet5test), list(cfsDeathFeatureSettest))
+covidtrainFeatureSets2 = c( list(covidFeatureSet2train), list(covidFeatureSet4train), list(covidFeatureSet5train), list(cfsCovidFeatureSettrain), list(covidFeatureSet6train))  
+covidtestFeatureSets2 = c( list(covidFeatureSet2test), list(covidFeatureSet4test),list(covidFeatureSet5test), list(cfsCovidFeatureSettest), list(covidFeatureSet6test))
+deathtrainFeatureSets2 = c( list(deathFeatureSet2train), list(deathFeatureSet4train),list(deathFeatureSet5train), list(cfsDeathFeatureSettrain), list(deathFeatureSet6train))
+deathtestFeatureSets2 = c( list(deathFeatureSet2test), list(deathFeatureSet4test),list(deathFeatureSet5test), list(cfsDeathFeatureSettest), list(covidFeatureSet6test))
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# Plot function for confusion matrices
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+draw_confusion_matrix <- function(cm) {
+  layout(matrix(c(1,1,2)))
+  par(mar=c(2,2,2,2))
+  plot(c(100, 345), c(300, 450), type = "n", xlab="", ylab="", xaxt='n', yaxt='n')
+  title('CONFUSION MATRIX', cex.main=2)
+  
+  # create the matrix 
+  rect(150, 430, 240, 370, col='#3F97D0')
+  text(195, 435, 'Class1', cex=1.2)
+  rect(250, 430, 340, 370, col='#F7AD50')
+  text(295, 435, 'Class2', cex=1.2)
+  text(125, 370, 'Predicted', cex=1.3, srt=90, font=2)
+  text(245, 450, 'Actual', cex=1.3, font=2)
+  rect(150, 305, 240, 365, col='#F7AD50')
+  rect(250, 305, 340, 365, col='#3F97D0')
+  text(140, 400, 'Class1', cex=1.2, srt=90)
+  text(140, 335, 'Class2', cex=1.2, srt=90)
+  
+  # add in the KNNconfusionMatrixDeaths results 
+  res <- as.numeric(cm$table)
+  text(195, 400, res[1], cex=1.6, font=2, col='white')
+  text(195, 335, res[2], cex=1.6, font=2, col='white')
+  text(295, 400, res[3], cex=1.6, font=2, col='white')
+  text(295, 335, res[4], cex=1.6, font=2, col='white')
+  
+  # add in the specifics 
+  plot(c(100, 0), c(100, 0), type = "n", xlab="", ylab="", main = "DETAILS", xaxt='n', yaxt='n')
+  text(10, 85, names(cm$byClass[1]), cex=1.2, font=2)
+  text(10, 70, round(as.numeric(cm$byClass[1]), 3), cex=1.2)
+  text(30, 85, names(cm$byClass[2]), cex=1.2, font=2)
+  text(30, 70, round(as.numeric(cm$byClass[2]), 3), cex=1.2)
+  text(50, 85, names(cm$byClass[5]), cex=1.2, font=2)
+  text(50, 70, round(as.numeric(cm$byClass[5]), 3), cex=1.2)
+  text(70, 85, names(cm$byClass[6]), cex=1.2, font=2)
+  text(70, 70, round(as.numeric(cm$byClass[6]), 3), cex=1.2)
+  text(90, 85, names(cm$byClass[7]), cex=1.2, font=2)
+  text(90, 70, round(as.numeric(cm$byClass[7]), 3), cex=1.2)
+  
+  # add in the accuracy information 
+  text(30, 35, names(cm$overall[1]), cex=1.5, font=2)
+  text(30, 20, round(as.numeric(cm$overall[1]), 3), cex=1.4)
+  text(70, 35, names(cm$overall[2]), cex=1.5, font=2)
+  text(70, 20, round(as.numeric(cm$overall[2]), 3), cex=1.4)
+}
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -569,8 +630,8 @@ for ( i in 1:length(covidConfusionMatrix) ){
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #na.exclude(deathDataTrainScaled$Class)
-train_index <-createFolds(deathDataTrainScaled$Class, k =10)
-ctreeFitDeath <- deathDataTrainScaled %>% train(Class ~ .,
+train_index <-createFolds(deathFeatureSet6train$Class, k =10)
+ctreeFitDeath <- deathFeatureSet6train %>% train(Class ~ .,
                                                 method = "ctree",
                                                 data = .,
                                                 tuneLength = 5,
@@ -582,11 +643,13 @@ plot(ctreeFitDeath$finalModel)
 # Checking the model
 summary(ctreeFitDeath)
 
-prCtreeDeathDataTestScaled <- predict(ctreeFitDeath, deathDataTestScaled)
+prCtreeDeathDataTestScaled <- predict(ctreeFitDeath, deathFeatureSet6test)
 summary(prCtreeDeathDataTestScaled)
 as.factor(prCtreeDeathDataTestScaled)
-ctreeconfusionMatrixDeaths <- confusionMatrix(as.factor(deathDataTestScaled$Class), prCtreeDeathDataTestScaled)
+ctreeconfusionMatrixDeaths <- confusionMatrix(prCtreeDeathDataTestScaled, as.factor(deathFeatureSet6test$Class))
 ctreeconfusionMatrixDeaths
+
+draw_confusion_matrix(ctreeconfusionMatrixDeaths)
 
 # Loop Training the ctree models
 j=0
@@ -623,6 +686,7 @@ for ( i in 1:length(ctreeDeathModels)){
   j = j+1
   PredictCV = predict(ctreeDeathModels[[i]], newdata = deathtrainFeatureSets2[[j]])
   deathPredictCVs = c(deathPredictCVs, list(PredictCV))
+  draw_confusion_matrix(deathPredictCVs)
 }
 length(deathPredictCVs)
 #Confusion Matrix
@@ -637,15 +701,17 @@ length(deathConfusionMatrix)
 for ( i in 1:length(deathConfusionMatrix) ){
   out=deathConfusionMatrix[[i]]
   print(out) 
+  print('Accuracy')
   print(((deathConfusionMatrix[[i]][1,1]+deathConfusionMatrix[[i]][2,2]+deathConfusionMatrix[[i]][3,3])) /sum(deathConfusionMatrix[[i]]))
 }
 ## Predict and print Confusion Matrix for all models using Test sets
-j=0
+j=0 
 deathPredictCVs = list()
 for ( i in 1:length(ctreeDeathModels)){
   j = j+1
   PredictCV = predict(ctreeDeathModels[[i]], newdata = deathtestFeatureSets2[[j]])
   deathPredictCVs = c(deathPredictCVs, list(PredictCV))
+  draw_confusion_matrix(deathPredictCVs)
 }
 length(deathPredictCVs)
 #Confusion Matrix
@@ -660,6 +726,7 @@ length(deathConfusionMatrix)
 for ( i in 1:length(deathConfusionMatrix) ){
   out=deathConfusionMatrix[[i]]
   print(out) 
+  print('Accuracy')
   print(((deathConfusionMatrix[[i]][1,1]+deathConfusionMatrix[[i]][2,2]+deathConfusionMatrix[[i]][3,3])) /sum(deathConfusionMatrix[[i]]))
 }
 
@@ -691,7 +758,6 @@ j=0
 ctreeCovidModels = list()
 for ( i in 1:length(covidtrainFeatureSets2)){
   j = j+1
-  ctreeCovidModel <- train(Class ~., data = covidtrainFeatureSets2[[i]])
   train_index <-createFolds(covidtrainFeatureSets2[[i]]$Class, k =10)
   ctreeCovidModel <- covidtrainFeatureSets2[[i]] %>% train(Class ~ .,
                                                   method = "ctree",
@@ -702,7 +768,7 @@ for ( i in 1:length(covidtrainFeatureSets2)){
     ctreeCovidModels = list(ctreeCovidModel)
   }
   else{
-    ctreeCovidModels = c(ctreeCovidModels,list(ctreeCovidModel))
+    ctreeCovidModels = c(ctreeCovidModels, list(ctreeCovidModel))
   }
 } 
 ## Predict and print Confusion Matrix for all models using Training sets
@@ -758,8 +824,8 @@ for ( i in 1:length(covidConfusionMatrix) ){
 # K-nearest Neighbor Deaths   
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-train_index <-createFolds(deathDataTrainScaled$Class, k =10)
-knnFitDeath <- deathDataTrainScaled %>% train(Class ~ ., 
+train_index <-createFolds(deathFeatureSet6train$Class, k =10)
+knnFitDeath <- deathFeatureSet6train %>% train(Class ~ ., 
                                               method = "knn", 
                                               data= .,
                                               preProcess = "scale", 
@@ -775,6 +841,11 @@ summary(prKNNDeathDataTestScaled)
 as.factor(prKNNDeathDataTestScaled)
 KNNconfusionMatrixDeaths <- confusionMatrix(as.factor(deathDataTestScaled$Class), prKNNDeathDataTestScaled)
 KNNconfusionMatrixDeaths
+
+# calculate the confusion matrix
+cm <- confusionMatrix(data = prKNNDeathDataTestScaled, reference = as.factor(deathDataTestScaled$Class))
+
+draw_confusion_matrix(cm)
 
 # Loop Training the knn models
 j=0
@@ -1134,16 +1205,16 @@ for ( i in 1:length(covidConfusionMatrix) ){
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Work on parameters of hidden layers of NN
-n <- names(deathDataTrainScaled)
+n <- names(covidFeatureSet6train)
 f <- as.formula(paste("Class ~", paste(n[! n %in% "Class"], collapse = " + ")))
 # Training the artificial neural network (ANN) model
-nn <- neuralnet(f, data = deathDataTrainScaled, hidden = c(5, 3), linear.output = T)
+nn <- neuralnet(f, data = covidFeatureSet6train, hidden = c(5, 3), linear.output = T)
 print(nn)
 # Checking the model
 summary(nn)
 
 # Predicting the Test set results
-nn_pred = predict(nn, newdata = deathDataTestScaled)
+nn_pred = predict(nn, newdata = covidFeatureSet6test)
 
 # Loop Training the svm models
 j=0
@@ -1153,7 +1224,7 @@ for ( i in 1:length(deathtrainFeatureSets2)){
   n <- names(deathtrainFeatureSets2[[i]])
   annDeathModel <- as.formula(paste("Class ~", paste(n[! n %in% "Class"], collapse = " + ")))
   # Training the artificial neural network (ANN) model
-  nn <- neuralnet(f, data = deathtrainFeatureSets2[[i]], hidden = c(5, 3), linear.output = T)
+  nn <- neuralnet(annDeathModel, data = deathtrainFeatureSets2[[i]], hidden = c(5, 3), linear.output = T)
 
   if (j ==1){
     annDeathModels = list(annDeathModel)
@@ -1242,9 +1313,9 @@ annCovidModels = list()
 for ( i in 1:length(covidtrainFeatureSets2)){
   j = j+1
   n <- names(covidtrainFeatureSets2[[i]])
-  annDeathModel <- as.formula(paste("Class ~", paste(n[! n %in% "Class"], collapse = " + ")))
+  annCovidModel <- as.formula(paste("Class ~", paste(n[! n %in% "Class"], collapse = " + ")))
   # Training the artificial neural network (ANN) model
-  nn <- neuralnet(f, data = covidtrainFeatureSets2[[i]], hidden = c(5, 3), linear.output = T)
+  nn <- neuralnet(annCovidModel, data = covidtrainFeatureSets2[[i]], hidden = c(5, 3), linear.output = T)
   
   if (j ==1){
     annCovidModels = list(annCovidModel)
