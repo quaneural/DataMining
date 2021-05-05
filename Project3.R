@@ -107,13 +107,13 @@ mobility <- dbGetQuery(con,'
 govt_response <- dbGetQuery(con,'
  SELECT * 
   FROM `bigquery-public-data.covid19_govt_response.oxford_policy_tracker` 
-  WHERE country_name LIKE "United_States"
+  WHERE country_name LIKE "United_States" AND
   CAST(date AS DATETIME) BETWEEN "2021-04-21" AND "2021-04-27"
 ')
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# Preprocessing/Data Cleaning for Predicting Covid Cases
+# Preprocessing/Data Cleaning for Predicting Covid Cases normalized
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 cases_orig <- cases
@@ -140,11 +140,7 @@ cases_normalized <- cases_one_day %>% mutate(cases_norm = cases_one_day$delta/to
 summary(cases_normalized$cases_norm)
 
 #Determine thresholds to match CDC
-plot(cases_normalized$cases_norm, xlim=c(1,1000), log='x', type="l", col="orange", lwd=5)#, xlab="time", ylab="concentration")
-
-# For Decision Tree and KNN models, here is a quick way to remove mobility features.
-cases_normalized <- setDT(cases_normalized)[,(249:252) :=NULL] 
-summary(cases_normalized$cases_norm)
+plot(cases_normalized$cases_norm, xlim=c(1,1000), log='x', type="l", col="orange", lwd=5)
 
 # Cases' Classes: low < 5000 <= moderate < 15000 <= high
 # Add Covid Labels
@@ -171,7 +167,7 @@ CovidDataTestScaled=CovidDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# Preprocessing/Data Cleaning for Predicting Covid Deaths
+# Preprocessing/Data Cleaning for Predicting Covid Deaths normalized
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 deaths_first_day <- cases_mob %>% filter(date == '2021-04-21')
@@ -188,7 +184,7 @@ summary(deaths_normalized$deaths_norm)
 plot(deaths_normalized$deaths_norm, xlim=c(1,300), log='x', type="l", col="red", lwd=5)#, xlab="time", ylab="concentration")
 
 # For Decision Tree and KNN models, here is a quick way to remove mobility features.
-deaths_normalized <- setDT(deaths_normalized)[,(249:252) :=NULL] 
+deaths_normalized <- setDT(deaths_normalized)[,(249:268) :=NULL] 
 summary(deaths_normalized$deaths_norm)
 
 # Deaths' Classes: low < 100 <= moderate < 300 <= high
@@ -420,35 +416,17 @@ covidtrainFeatureSets = c( list(covidFeatureSet1train),list(covidFeatureSet2trai
 covidtestFeatureSets = c( list(covidFeatureSet1test),list(covidFeatureSet2test),list(covidFeatureSet3test),list(covidFeatureSet4test),list(covidFeatureSet5test),list(CovidDataTestScaled), list(cfsCovidFeatureSettest) )
 deathtrainFeatureSets = c( list(deathFeatureSet1train),list(deathFeatureSet2train),list(deathFeatureSet3train),list(deathFeatureSet4train),list(deathFeatureSet5train), list(deathDataTrainScaled), list(cfsDeathFeatureSettrain) )
 deathtestFeatureSets = c( list(deathFeatureSet1test),list(deathFeatureSet2test),list(deathFeatureSet3test),list(deathFeatureSet4test),list(deathFeatureSet5test), list(deathDataTestScaled) ,list(cfsDeathFeatureSettest))
+
+covidtrainFeatureSets2 = c( list(covidFeatureSet2train), list(covidFeatureSet4train),list(covidFeatureSet5train), list(cfsCovidFeatureSettrain))
+covidtestFeatureSets2 = c( list(covidFeatureSet2test), list(covidFeatureSet4test),list(covidFeatureSet5test), list(cfsCovidFeatureSettest) )
+deathtrainFeatureSets2 = c( list(deathFeatureSet2train), list(deathFeatureSet4train),list(deathFeatureSet5train), list(cfsDeathFeatureSettrain) )
+deathtestFeatureSets2 = c( list(deathFeatureSet2test), list(deathFeatureSet4test),list(deathFeatureSet5test), list(cfsDeathFeatureSettest))
+
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Classification Models:
 #
-# Logistic Regression Deaths   
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-LogDeathsModel <- glm(as.factor(Class) ~ . , data = deathDataTrainScaled, family = "binomial")
-summary(LogDeathsModel)
-# predict(LogDeathsModel, deathDataTestScaled)
-pr <- predict(LogDeathsModel, deathDataTestScaled, type = "response")
-round(pr, 2)
-hist(pr, breaks=20)
-table(actual=deathDataTestScaled$Class, predicted=pr>.5)
-
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# Logistic Regression Cases   
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-LogCovidModel <- glm(as.factor(Class) ~ . , data = CovidDataTrainScaled, family = "binomial")
-summary(LogCovidModel)
-# predict(LogDeathsModel, deathDataTestScaled)
-pr <- predict(LogCovidModel, CovidDataTestScaled, type = "response")
-round(pr, 2)
-hist(pr, breaks=20)
-table(actual=CovidDataTestScaled$Class, predicted=pr>.5)
-
-# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Multinomial Logistic Regression All Death Feature Sets   
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -610,6 +588,82 @@ as.factor(prCtreeDeathDataTestScaled)
 ctreeconfusionMatrixDeaths <- confusionMatrix(as.factor(deathDataTestScaled$Class), prCtreeDeathDataTestScaled)
 ctreeconfusionMatrixDeaths
 
+# Loop Training the ctree models
+j=0
+ctreeDeathModels = list()
+for ( i in 1:length(deathtrainFeatureSets2)){
+  j = j+1
+  #svmDeathModel <- svm(formula = Class ~., data =deathtrainFeatureSets2[[i]], cross=10, type = 'C-classification', kernel = 'linear')
+  train_index <- createFolds(deathtrainFeatureSets2[[i]]$Class, k =10)
+  ctreeDeathModel <- deathtrainFeatureSets2[[i]] %>% train(Class ~ .,
+                                                  method = "ctree",
+                                                  data = .,
+                                                  tuneLength = 5,
+                                                  trControl = trainControl(method = "cv", indexOut = train_index))
+  if (j ==1){
+    ctreeDeathModels = list(ctreeDeathModel)
+  }
+  else{
+    ctreeDeathModels = c(ctreeDeathModels,list(ctreeDeathModel))
+  }
+  
+  # Checking the model
+  #summary(svmDeathModel)
+  #sort(coefficients(svmDeathModel))
+  #imp =caret::varImp(svmDeathModel)
+  #imp <- as.data.frame(imp)
+  #imp <- data.frame(overall = imp$Overall,
+  #              names   = rownames(imp))
+  #imp[order(imp$overall,decreasing = T),]
+}
+## Predict and print Confusion Matrix for all models using Training sets
+j=0
+deathPredictCVs = list()
+for ( i in 1:length(ctreeDeathModels)){
+  j = j+1
+  PredictCV = predict(ctreeDeathModels[[i]], newdata = deathtrainFeatureSets2[[j]])
+  deathPredictCVs = c(deathPredictCVs, list(PredictCV))
+}
+length(deathPredictCVs)
+#Confusion Matrix
+j=0
+deathConfusionMatrix = list()
+for (i in 1:length(deathPredictCVs)){
+  j= j+1
+  tab1 = table(deathtrainFeatureSets2[[j]]$Class, deathPredictCVs[[i]])
+  deathConfusionMatrix = c(deathConfusionMatrix, list(tab1))
+}  
+length(deathConfusionMatrix)
+for ( i in 1:length(deathConfusionMatrix) ){
+  out=deathConfusionMatrix[[i]]
+  print(out) 
+  print(((deathConfusionMatrix[[i]][1,1]+deathConfusionMatrix[[i]][2,2]+deathConfusionMatrix[[i]][3,3])) /sum(deathConfusionMatrix[[i]]))
+}
+## Predict and print Confusion Matrix for all models using Test sets
+j=0
+deathPredictCVs = list()
+for ( i in 1:length(ctreeDeathModels)){
+  j = j+1
+  PredictCV = predict(ctreeDeathModels[[i]], newdata = deathtestFeatureSets2[[j]])
+  deathPredictCVs = c(deathPredictCVs, list(PredictCV))
+}
+length(deathPredictCVs)
+#Confusion Matrix
+j=0
+deathConfusionMatrix = list()
+for (i in 1:length(deathPredictCVs)){
+  j= j+1
+  tab1 = table(deathtestFeatureSets2[[j]]$Class, deathPredictCVs[[i]])
+  deathConfusionMatrix = c(deathConfusionMatrix, list(tab1))
+}  
+length(deathConfusionMatrix)
+for ( i in 1:length(deathConfusionMatrix) ){
+  out=deathConfusionMatrix[[i]]
+  print(out) 
+  print(((deathConfusionMatrix[[i]][1,1]+deathConfusionMatrix[[i]][2,2]+deathConfusionMatrix[[i]][3,3])) /sum(deathConfusionMatrix[[i]]))
+}
+
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Decision Tree Cases  
@@ -630,6 +684,74 @@ summary(prCtreeCovidDataTestScaled)
 as.factor(prCtreeCovidDataTestScaled)
 ctreeconfusionMatrixCovid <- confusionMatrix(as.factor(CovidDataTestScaled$Class), prCtreeCovidDataTestScaled)
 ctreeconfusionMatrixCovid
+
+# Loop Training the ctree models
+j=0
+
+ctreeCovidModels = list()
+for ( i in 1:length(covidtrainFeatureSets2)){
+  j = j+1
+  ctreeCovidModel <- train(Class ~., data = covidtrainFeatureSets2[[i]])
+  train_index <-createFolds(covidtrainFeatureSets2[[i]]$Class, k =10)
+  ctreeCovidModel <- covidtrainFeatureSets2[[i]] %>% train(Class ~ .,
+                                                  method = "ctree",
+                                                  data = .,
+                                                  tuneLength = 5,
+                                                  trControl = trainControl(method = "cv", indexOut = train_index))
+  if (j ==1){
+    ctreeCovidModels = list(ctreeCovidModel)
+  }
+  else{
+    ctreeCovidModels = c(ctreeCovidModels,list(ctreeCovidModel))
+  }
+} 
+## Predict and print Confusion Matrix for all models using Training sets
+j=0
+covidPredictCVs = list()
+for ( i in 1:length(ctreeCovidModels)){
+  j = j+1
+  PredictCV = predict(ctreeCovidModels[[i]], newdata = covidtrainFeatureSets2[[j]])
+  covidPredictCVs = c(covidPredictCVs, list(PredictCV))
+}
+length(covidPredictCVs)
+#Confusion Matrix
+j=0
+covidConfusionMatrix = list()
+for (i in 1:length(covidPredictCVs)){
+  j= j+1
+  tab1 = table(covidtrainFeatureSets2[[j]]$Class, covidPredictCVs[[i]])
+  covidConfusionMatrix = c(covidConfusionMatrix, list(tab1))
+}  
+length(covidConfusionMatrix)
+for ( i in 1:length(covidConfusionMatrix) ){
+  out=covidConfusionMatrix[[i]]
+  print(out) 
+  print(((covidConfusionMatrix[[i]][1,1]+covidConfusionMatrix[[i]][2,2]+covidConfusionMatrix[[i]][3,3])) /sum(covidConfusionMatrix[[i]]))
+}
+
+## Predict and print Confusion Matrix for all models using Test sets
+j=0
+covidPredictCVs = list()
+for ( i in 1:length(ctreeCovidModels)){
+  j = j+1
+  PredictCV = predict(ctreeCovidModels[[i]], newdata = covidtestFeatureSets2[[j]])
+  covidPredictCVs = c(covidPredictCVs, list(PredictCV))
+}
+length(covidPredictCVs)
+#Confusion Matrix
+j=0
+covidConfusionMatrix = list()
+for (i in 1:length(covidPredictCVs)){
+  j= j+1
+  tab1 = table(covidtestFeatureSets2[[j]]$Class, covidPredictCVs[[i]])
+  covidConfusionMatrix = c(covidConfusionMatrix, list(tab1))
+}  
+length(covidConfusionMatrix)
+for ( i in 1:length(covidConfusionMatrix) ){
+  out=covidConfusionMatrix[[i]]
+  print(out) 
+  print(((covidConfusionMatrix[[i]][1,1]+covidConfusionMatrix[[i]][2,2]+covidConfusionMatrix[[i]][3,3])) /sum(covidConfusionMatrix[[i]]))
+}
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -654,6 +776,82 @@ as.factor(prKNNDeathDataTestScaled)
 KNNconfusionMatrixDeaths <- confusionMatrix(as.factor(deathDataTestScaled$Class), prKNNDeathDataTestScaled)
 KNNconfusionMatrixDeaths
 
+# Loop Training the knn models
+j=0
+knnDeathModels = list()
+for ( i in 1:length(deathtrainFeatureSets2)){
+  j = j+1
+  train_index <- createFolds(deathtrainFeatureSets2[[i]]$Class, k =10)
+  knnDeathModel <- deathtrainFeatureSets2[[i]] %>% train(Class ~ ., 
+                                                method = "knn", 
+                                                data= .,
+                                                preProcess = "scale", 
+                                                tuneLength = 5,
+                                                tuneGrid=data.frame(k=1:10),
+                                                trControl = trainControl(method = "cv", indexOut = train_index))
+  if (j ==1){
+    knnDeathModels = list(knnDeathModel)
+  }
+  else{
+    knnDeathModels = c(knnDeathModels,list(knnDeathModel))
+  }
+  
+  # Checking the model
+  #summary(svmDeathModel)
+  #sort(coefficients(svmDeathModel))
+  #imp =caret::varImp(svmDeathModel)
+  #imp <- as.data.frame(imp)
+  #imp <- data.frame(overall = imp$Overall,
+  #              names   = rownames(imp))
+  #imp[order(imp$overall,decreasing = T),]
+}
+## Predict and print Confusion Matrix for all models using Training sets
+j=0
+deathPredictCVs = list()
+for ( i in 1:length(knnDeathModels)){
+  j = j+1
+  PredictCV = predict(knnDeathModels[[i]], newdata = deathtrainFeatureSets2[[j]])
+  deathPredictCVs = c(deathPredictCVs, list(PredictCV))
+}
+length(deathPredictCVs)
+#Confusion Matrix
+j=0
+deathConfusionMatrix = list()
+for (i in 1:length(deathPredictCVs)){
+  j= j+1
+  tab1 = table(deathtrainFeatureSets2[[j]]$Class, deathPredictCVs[[i]])
+  deathConfusionMatrix = c(deathConfusionMatrix, list(tab1))
+}  
+length(deathConfusionMatrix)
+for ( i in 1:length(deathConfusionMatrix) ){
+  out=deathConfusionMatrix[[i]]
+  print(out) 
+  print(((deathConfusionMatrix[[i]][1,1]+deathConfusionMatrix[[i]][2,2]+deathConfusionMatrix[[i]][3,3])) /sum(deathConfusionMatrix[[i]]))
+}
+## Predict and print Confusion Matrix for all models using Test sets
+j=0
+deathPredictCVs = list()
+for ( i in 1:length(ctreeDeathModels)){
+  j = j+1
+  PredictCV = predict(ctreeDeathModels[[i]], newdata = deathtestFeatureSets2[[j]])
+  deathPredictCVs = c(deathPredictCVs, list(PredictCV))
+}
+length(deathPredictCVs)
+#Confusion Matrix
+j=0
+deathConfusionMatrix = list()
+for (i in 1:length(deathPredictCVs)){
+  j= j+1
+  tab1 = table(deathtestFeatureSets2[[j]]$Class, deathPredictCVs[[i]])
+  deathConfusionMatrix = c(deathConfusionMatrix, list(tab1))
+}  
+length(deathConfusionMatrix)
+for ( i in 1:length(deathConfusionMatrix) ){
+  out=deathConfusionMatrix[[i]]
+  print(out) 
+  print(((deathConfusionMatrix[[i]][1,1]+deathConfusionMatrix[[i]][2,2]+deathConfusionMatrix[[i]][3,3])) /sum(deathConfusionMatrix[[i]]))
+}
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # K-nearest neighbor Cases   
@@ -677,6 +875,75 @@ as.factor(prKNNCovidDataTestScaled)
 KNNconfusionMatrixCovid <- confusionMatrix(as.factor(CovidDataTestScaled$Class), prKNNCovidDataTestScaled)
 KNNconfusionMatrixCovid
 
+# Loop Training the knn models
+j=0
+
+knnCovidModels = list()
+for ( i in 1:length(covidtrainFeatureSets2)){
+  j = j+1
+  train_index <-createFolds(covidtrainFeatureSets2[[i]]$Class, k =10)
+  knnCovidModel <- covidtrainFeatureSets2[[i]] %>% train(Class ~ ., 
+                                               method = "knn", 
+                                               data= .,
+                                               preProcess = "scale", 
+                                               tuneLength = 5,
+                                               tuneGrid=data.frame(k=1:10),
+                                               trControl = trainControl(method = "cv", indexOut = train_index))
+  if (j ==1){
+    knnCovidModels = list(knnCovidModel)
+  }
+  else{
+    knnCovidModels = c(knnCovidModels,list(knnCovidModel))
+  }
+} 
+## Predict and print Confusion Matrix for all models using Training sets
+j=0
+covidPredictCVs = list()
+for ( i in 1:length(knnCovidModels)){
+  j = j+1
+  PredictCV = predict(knnCovidModels[[i]], newdata = covidtrainFeatureSets2[[j]])
+  covidPredictCVs = c(covidPredictCVs, list(PredictCV))
+}
+length(covidPredictCVs)
+#Confusion Matrix
+j=0
+covidConfusionMatrix = list()
+for (i in 1:length(covidPredictCVs)){
+  j= j+1
+  tab1 = table(covidtrainFeatureSets2[[j]]$Class, covidPredictCVs[[i]])
+  covidConfusionMatrix = c(covidConfusionMatrix, list(tab1))
+}  
+length(covidConfusionMatrix)
+for ( i in 1:length(covidConfusionMatrix) ){
+  out=covidConfusionMatrix[[i]]
+  print(out) 
+  print(((covidConfusionMatrix[[i]][1,1]+covidConfusionMatrix[[i]][2,2]+covidConfusionMatrix[[i]][3,3])) /sum(covidConfusionMatrix[[i]]))
+}
+
+## Predict and print Confusion Matrix for all models using Test sets
+j=0
+covidPredictCVs = list()
+for ( i in 1:length(knnCovidModels)){
+  j = j+1
+  PredictCV = predict(knnCovidModels[[i]], newdata = covidtestFeatureSets2[[j]])
+  covidPredictCVs = c(covidPredictCVs, list(PredictCV))
+}
+length(covidPredictCVs)
+#Confusion Matrix
+j=0
+covidConfusionMatrix = list()
+for (i in 1:length(covidPredictCVs)){
+  j= j+1
+  tab1 = table(covidtestFeatureSets2[[j]]$Class, covidPredictCVs[[i]])
+  covidConfusionMatrix = c(covidConfusionMatrix, list(tab1))
+}  
+length(covidConfusionMatrix)
+for ( i in 1:length(covidConfusionMatrix) ){
+  out=covidConfusionMatrix[[i]]
+  print(out) 
+  print(((covidConfusionMatrix[[i]][1,1]+covidConfusionMatrix[[i]][2,2]+covidConfusionMatrix[[i]][3,3])) /sum(covidConfusionMatrix[[i]]))
+}
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Support Vector Machine Deaths   
@@ -696,6 +963,87 @@ svm_pred <- predict(svmfit, newdata = deathDataTestScaled)
 summary(svm_pred)
 
 confusionMatrix(actual, svm_pred)
+
+# Loop Training the svm models
+j=0
+svmDeathModels = list()
+for ( i in 1:length(deathtrainFeatureSets2)){
+  j = j+1
+  svmDeathModel <- svm(formula = Class ~., data =deathtrainFeatureSets2[[i]], cross=10, type = 'C-classification', kernel = 'linear')
+  if (j ==1){
+    svmDeathModels = list(svmDeathModel)
+  }
+  else{
+    svmDeathModels = c(svmDeathModels,list(svmDeathModel))
+  }
+  
+  # Checking the model
+  #summary(svmDeathModel)
+  #sort(coefficients(svmDeathModel))
+  #imp =caret::varImp(svmDeathModel)
+  #imp <- as.data.frame(imp)
+  #imp <- data.frame(overall = imp$Overall,
+  #              names   = rownames(imp))
+  #imp[order(imp$overall,decreasing = T),]
+}
+## Predict and print Confusion Matrix for all models using Training sets
+j=0
+deathPredictCVs = list()
+for ( i in 1:length(svmDeathModels)){
+  j = j+1
+  PredictCV = predict(svmDeathModels[[i]], newdata = deathtrainFeatureSets2[[j]], type = "class",  na.action=na.pass)
+  deathPredictCVs = c(deathPredictCVs, list(PredictCV))
+}
+length(deathPredictCVs)
+#Confusion Matrix
+j=0
+deathConfusionMatrix = list()
+for (i in 1:length(deathPredictCVs)){
+  j= j+1
+  tab1 = table(deathtrainFeatureSets2[[j]]$Class, deathPredictCVs[[i]])
+  deathConfusionMatrix = c(deathConfusionMatrix, list(tab1))
+}  
+length(deathConfusionMatrix)
+for ( i in 1:length(deathConfusionMatrix) ){
+  out=deathConfusionMatrix[[i]]
+  print(out) 
+  print(((deathConfusionMatrix[[i]][1,1]+deathConfusionMatrix[[i]][2,2]+deathConfusionMatrix[[i]][3,3])) /sum(deathConfusionMatrix[[i]]))
+}
+## Predict and print Confusion Matrix for all models using Test sets
+j=0
+deathPredictCVs = list()
+for ( i in 1:length(svmDeathModels)){
+  j = j+1
+  PredictCV = predict(svmDeathModels[[i]], newdata = deathtestFeatureSets2[[j]], type = "class",  na.action=na.pass)
+  deathPredictCVs = c(deathPredictCVs, list(PredictCV))
+}
+length(deathPredictCVs)
+#Confusion Matrix
+j=0
+deathConfusionMatrix = list()
+for (i in 1:length(deathPredictCVs)){
+  j= j+1
+  tab1 = table(deathtestFeatureSets2[[j]]$Class, deathPredictCVs[[i]])
+  deathConfusionMatrix = c(deathConfusionMatrix, list(tab1))
+}  
+length(deathConfusionMatrix)
+for ( i in 1:length(deathConfusionMatrix) ){
+  out=deathConfusionMatrix[[i]]
+  print(out) 
+  print(((deathConfusionMatrix[[i]][1,1]+deathConfusionMatrix[[i]][2,2]+deathConfusionMatrix[[i]][3,3])) /sum(deathConfusionMatrix[[i]]))
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -717,6 +1065,69 @@ summary(svm_pred)
 
 confusionMatrix(CovidDataTest$Class, svm_pred)
 
+# Loop Training the svm models
+j=0
+
+svmCovidModels = list()
+for ( i in 1:length(covidtrainFeatureSets2)){
+  j = j+1
+  svmCovidModel <- svm(formula = Class ~., data = covidtrainFeatureSets2[[i]], cross=10, type = 'C-classification', kernel = 'linear')
+  
+  if (j ==1){
+    svmCovidModels = list(svmCovidModel)
+  }
+  else{
+    knnCovidModels = c(svmCovidModels,list(svmCovidModel))
+  }
+} 
+## Predict and print Confusion Matrix for all models using Training sets
+j=0
+covidPredictCVs = list()
+for ( i in 1:length(knnCovidModels)){
+  j = j+1
+  PredictCV = predict(svmCovidModels[[i]], newdata = covidtrainFeatureSets2[[j]])
+  covidPredictCVs = c(covidPredictCVs, list(PredictCV))
+}
+length(covidPredictCVs)
+#Confusion Matrix
+j=0
+covidConfusionMatrix = list()
+for (i in 1:length(covidPredictCVs)){
+  j= j+1
+  tab1 = table(covidtrainFeatureSets2[[j]]$Class, covidPredictCVs[[i]])
+  covidConfusionMatrix = c(covidConfusionMatrix, list(tab1))
+}  
+length(covidConfusionMatrix)
+for ( i in 1:length(covidConfusionMatrix) ){
+  out=covidConfusionMatrix[[i]]
+  print(out) 
+  print(((covidConfusionMatrix[[i]][1,1]+covidConfusionMatrix[[i]][2,2]+covidConfusionMatrix[[i]][3,3])) /sum(covidConfusionMatrix[[i]]))
+}
+
+## Predict and print Confusion Matrix for all models using Test sets
+j=0
+covidPredictCVs = list()
+for ( i in 1:length(knnCovidModels)){
+  j = j+1
+  PredictCV = predict(knnCovidModels[[i]], newdata = covidtestFeatureSets2[[j]])
+  covidPredictCVs = c(covidPredictCVs, list(PredictCV))
+}
+length(covidPredictCVs)
+#Confusion Matrix
+j=0
+covidConfusionMatrix = list()
+for (i in 1:length(covidPredictCVs)){
+  j= j+1
+  tab1 = table(covidtestFeatureSets2[[j]]$Class, covidPredictCVs[[i]])
+  covidConfusionMatrix = c(covidConfusionMatrix, list(tab1))
+}  
+length(covidConfusionMatrix)
+for ( i in 1:length(covidConfusionMatrix) ){
+  out=covidConfusionMatrix[[i]]
+  print(out) 
+  print(((covidConfusionMatrix[[i]][1,1]+covidConfusionMatrix[[i]][2,2]+covidConfusionMatrix[[i]][3,3])) /sum(covidConfusionMatrix[[i]]))
+}
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Artificial Neural Network Deaths   
@@ -734,6 +1145,79 @@ summary(nn)
 # Predicting the Test set results
 nn_pred = predict(nn, newdata = deathDataTestScaled)
 
+# Loop Training the svm models
+j=0
+annDeathModels = list()
+for ( i in 1:length(deathtrainFeatureSets2)){
+  j = j+1
+  n <- names(deathtrainFeatureSets2[[i]])
+  annDeathModel <- as.formula(paste("Class ~", paste(n[! n %in% "Class"], collapse = " + ")))
+  # Training the artificial neural network (ANN) model
+  nn <- neuralnet(f, data = deathtrainFeatureSets2[[i]], hidden = c(5, 3), linear.output = T)
+
+  if (j ==1){
+    annDeathModels = list(annDeathModel)
+  }
+  else{
+    annDeathModels = c(svmDeathModels,list(annDeathModel))
+  }
+  
+  # Checking the model
+  #summary(svmDeathModel)
+  #sort(coefficients(svmDeathModel))
+  #imp =caret::varImp(svmDeathModel)
+  #imp <- as.data.frame(imp)
+  #imp <- data.frame(overall = imp$Overall,
+  #              names   = rownames(imp))
+  #imp[order(imp$overall,decreasing = T),]
+}
+## Predict and print Confusion Matrix for all models using Training sets
+j=0
+deathPredictCVs = list()
+for ( i in 1:length(annDeathModels)){
+  j = j+1
+  PredictCV = predict(annDeathModels[[i]], newdata = deathtrainFeatureSets2[[j]], type = "class",  na.action=na.pass)
+  deathPredictCVs = c(deathPredictCVs, list(PredictCV))
+}
+length(deathPredictCVs)
+#Confusion Matrix
+j=0
+deathConfusionMatrix = list()
+for (i in 1:length(deathPredictCVs)){
+  j= j+1
+  tab1 = table(deathtrainFeatureSets2[[j]]$Class, deathPredictCVs[[i]])
+  deathConfusionMatrix = c(deathConfusionMatrix, list(tab1))
+}  
+length(deathConfusionMatrix)
+for ( i in 1:length(deathConfusionMatrix) ){
+  out=deathConfusionMatrix[[i]]
+  print(out) 
+  print(((deathConfusionMatrix[[i]][1,1]+deathConfusionMatrix[[i]][2,2]+deathConfusionMatrix[[i]][3,3])) /sum(deathConfusionMatrix[[i]]))
+}
+## Predict and print Confusion Matrix for all models using Test sets
+j=0
+deathPredictCVs = list()
+for ( i in 1:length(svmDeathModels)){
+  j = j+1
+  PredictCV = predict(svmDeathModels[[i]], newdata = deathtestFeatureSets2[[j]], type = "class",  na.action=na.pass)
+  deathPredictCVs = c(deathPredictCVs, list(PredictCV))
+}
+length(deathPredictCVs)
+#Confusion Matrix
+j=0
+deathConfusionMatrix = list()
+for (i in 1:length(deathPredictCVs)){
+  j= j+1
+  tab1 = table(deathtestFeatureSets2[[j]]$Class, deathPredictCVs[[i]])
+  deathConfusionMatrix = c(deathConfusionMatrix, list(tab1))
+}  
+length(deathConfusionMatrix)
+for ( i in 1:length(deathConfusionMatrix) ){
+  out=deathConfusionMatrix[[i]]
+  print(out) 
+  print(((deathConfusionMatrix[[i]][1,1]+deathConfusionMatrix[[i]][2,2]+deathConfusionMatrix[[i]][3,3])) /sum(deathConfusionMatrix[[i]]))
+}
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Artificial Neural Network Cases   
@@ -750,5 +1234,71 @@ summary(nn)
 
 # Predicting the Test set results
 nn_pred = predict(nn, newdata = CovidDataTestScaled)
+
+# Loop Training the ann models
+j=0
+
+annCovidModels = list()
+for ( i in 1:length(covidtrainFeatureSets2)){
+  j = j+1
+  n <- names(covidtrainFeatureSets2[[i]])
+  annDeathModel <- as.formula(paste("Class ~", paste(n[! n %in% "Class"], collapse = " + ")))
+  # Training the artificial neural network (ANN) model
+  nn <- neuralnet(f, data = covidtrainFeatureSets2[[i]], hidden = c(5, 3), linear.output = T)
+  
+  if (j ==1){
+    annCovidModels = list(annCovidModel)
+  }
+  else{
+    annCovidModels = c(knnCovidModels,list(annCovidModel))
+  }
+} 
+## Predict and print Confusion Matrix for all models using Training sets
+j=0
+covidPredictCVs = list()
+for ( i in 1:length(annCovidModels)){
+  j = j+1
+  PredictCV = predict(annCovidModels[[i]], newdata = covidtrainFeatureSets2[[j]])
+  covidPredictCVs = c(covidPredictCVs, list(PredictCV))
+}
+length(covidPredictCVs)
+#Confusion Matrix
+j=0
+covidConfusionMatrix = list()
+for (i in 1:length(covidPredictCVs)){
+  j= j+1
+  tab1 = table(covidtrainFeatureSets2[[j]]$Class, covidPredictCVs[[i]])
+  covidConfusionMatrix = c(covidConfusionMatrix, list(tab1))
+}  
+length(covidConfusionMatrix)
+for ( i in 1:length(covidConfusionMatrix) ){
+  out=covidConfusionMatrix[[i]]
+  print(out) 
+  print(((covidConfusionMatrix[[i]][1,1]+covidConfusionMatrix[[i]][2,2]+covidConfusionMatrix[[i]][3,3])) /sum(covidConfusionMatrix[[i]]))
+}
+
+## Predict and print Confusion Matrix for all models using Test sets
+j=0
+covidPredictCVs = list()
+for ( i in 1:length(knnCovidModels)){
+  j = j+1
+  PredictCV = predict(knnCovidModels[[i]], newdata = covidtestFeatureSets2[[j]])
+  covidPredictCVs = c(covidPredictCVs, list(PredictCV))
+}
+length(covidPredictCVs)
+#Confusion Matrix
+j=0
+covidConfusionMatrix = list()
+for (i in 1:length(covidPredictCVs)){
+  j= j+1
+  tab1 = table(covidtestFeatureSets2[[j]]$Class, covidPredictCVs[[i]])
+  covidConfusionMatrix = c(covidConfusionMatrix, list(tab1))
+}  
+length(covidConfusionMatrix)
+for ( i in 1:length(covidConfusionMatrix) ){
+  out=covidConfusionMatrix[[i]]
+  print(out) 
+  print(((covidConfusionMatrix[[i]][1,1]+covidConfusionMatrix[[i]][2,2]+covidConfusionMatrix[[i]][3,3])) /sum(covidConfusionMatrix[[i]]))
+}
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
