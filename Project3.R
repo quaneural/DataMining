@@ -216,7 +216,7 @@ deathDataTestScaled=deathDataTest2%>% dplyr::mutate_if(is.numeric, scale)
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#  Feature Importance on Normalized Data
+# Feature Importance on Normalized Data
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 covid_set3 = dplyr::select(cases_normalized, -Class, -total_pop, -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths)
 colnames(covid_set3)
@@ -371,13 +371,13 @@ Top10CovidDataTrainScaled =dplyr::select(CovidDataTrainScaled,Class,
                                          owner_occupied_housing_units_median_value,hispanic_male_45_54,median_rent,hispanic_pop,median_year_structure_built,
                                          asian_male_45_54) 
 
-#sets 1- 3 include mobility data, sets 4 and 5 do not
+# sets 1- 3 include mobility data, sets 4 and 5 do not
 covidFeatureSet1train=TopCovidDataTrainScaled
 covidFeatureSet1test= TopCovidDataTestScaled
 covidFeatureSet2train=Top10CovidDataTrainScaled
 covidFeatureSet2test=Top10CovidDataTestScaled 
-#Note  grocery_and_pharmacy_percent_change_from_baseline and retail_and_recreation_percent_change_from_baseline
-#were not in test and train datasets
+# Note grocery_and_pharmacy_percent_change_from_baseline and retail_and_recreation_percent_change_from_baseline
+# were not in test and train datasets
 covidFeatureSet3train = dplyr::select (CovidDataTrainScaled, Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
                                        workplaces_percent_change_from_baseline)
 covidFeatureSet3test =dplyr::select (CovidDataTestScaled,Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
@@ -409,15 +409,17 @@ cfsCovidFeatureSettrain =dplyr::select (CovidDataTrainScaled, Class,vacant_housi
 cfsDeathFeatureSettest= dplyr::select (deathDataTestScaled, Class,median_age,amerindian_pop,other_race_pop,percent_income_spent_on_rent,dwellings_2_units,commuters_by_subway_or_elevated)
 cfsCovidFeatureSettest =dplyr::select (CovidDataTestScaled, Class,vacant_housing_units_for_sale,hispanic_male_55_64,male_45_64_high_school,workplaces_percent_change_from_baseline)
 
-######################################################
-### Final Feature Sets to use for Training/testing
-######################################################
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+# Final Feature Sets to use for Training/testing
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 covidtrainFeatureSets=c( list(covidFeatureSet1train),list(covidFeatureSet2train),list(covidFeatureSet3train),list(covidFeatureSet4train),list(covidFeatureSet5train),list(CovidDataTrainScaled), list(cfsCovidFeatureSettrain))
 covidtestFeatureSets=c( list(covidFeatureSet1test),list(covidFeatureSet2test),list(covidFeatureSet3test),list(covidFeatureSet4test),list(covidFeatureSet5test),list(CovidDataTestScaled), list(cfsCovidFeatureSettest) )
 deathtrainFeatureSets=c( list(deathFeatureSet1train),list(deathFeatureSet2train),list(deathFeatureSet3train),list(deathFeatureSet4train),list(deathFeatureSet5train), list(deathDataTrainScaled), list(cfsDeathFeatureSettrain) )
 deathtestFeatureSets=c( list(deathFeatureSet1test),list(deathFeatureSet2test),list(deathFeatureSet3test),list(deathFeatureSet4test),list(deathFeatureSet5test), list(deathDataTestScaled) ,list(cfsDeathFeatureSettest))
-# --------------
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Classification Models:
 #
