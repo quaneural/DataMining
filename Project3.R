@@ -108,7 +108,9 @@ govt_response <- dbGetQuery(con,'
  SELECT * 
   FROM `bigquery-public-data.covid19_govt_response.oxford_policy_tracker` 
   WHERE country_name LIKE "United_States"
+  CAST(date AS DATETIME) BETWEEN "2021-04-21" AND "2021-04-27"
 ')
+
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Preprocessing/Data Cleaning for Predicting Covid Cases
@@ -125,7 +127,7 @@ cases_mob <- cases_mobility[!is.na(cases_mobility$parks_percent_change_from_base
 cases_mob <- cases_mob[!is.na(cases_mob$county_fips_code.x), ] 
 cases_mob <- cases_mob %>% rename(date=date.x)
 cases_mob <- cases_mob %>% rename(county_fips_code=county_fips_code.x)
-cases_mob <- setDT(cases_mob)[,(249:270) :=NULL] 
+cases_mob <- setDT(cases_mob)[,(249:268) :=NULL] 
 
 cases_first_day <- cases_mob %>% filter(date == '2021-04-21') 
 cases_first_day <- cases_mob[1:2110,]
@@ -226,7 +228,7 @@ US_covidNorm_weights <- covid_set3 %>% chi.squared(cases_norm ~ ., data = .) %>%
 US_covidNorm_weights
 #write.table(US_covidNorm_weights, file="chisquare_US_covidNorm_weights.csv",sep = ",")
 
-cfs_US_covidNorm_features=covid_set3 %>%cfs(cases_norm ~ ., data = .)
+cfs_US_covidNorm_features=covid_set3 %>% cfs(cases_norm ~ ., data = .)
 cfs_US_covidNorm_features
 #[1] "vacant_housing_units_for_sale"           "hispanic_male_55_64"                     "male_45_64_high_school"                 
 #[4] "workplaces_percent_change_from_baseline
@@ -240,12 +242,12 @@ US_deathsNorm_weights <- death_set3 %>% chi.squared(deaths_norm ~ ., data = .) %
 US_deathsNorm_weights
 #write.table(US_deathsNorm_weights, file="chisquare_US_deathsNorm_weights.csv",sep = ",")
 
-cfs_US_deathsNorm_features=death_set3 %>%cfs(deaths_norm ~ ., data = .)
+cfs_US_deathsNorm_features = death_set3 %>%cfs(deaths_norm ~ ., data = .)
 cfs_US_deathsNorm_features
 #[1] "median_age"                              "amerindian_pop"                          "other_race_pop"                         
 #[4] "percent_income_spent_on_rent"            "dwellings_2_units"                       "commuters_by_subway_or_elevated"        
 #$[7] "workplaces_percent_change_from_baseline
-topUSDeathNormFeatures= dplyr::select(deaths_normalized, -Class, -total_pop,  -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths,
+topUSDeathNormFeatures = dplyr::select(deaths_normalized, -Class, -total_pop,  -confirmed_cases, -delta, -county_fips_code, -geo_id, -state_fips_code, -state, -date,-gini_index, -county_name, -deaths,
                                       median_age,amerindian_pop,other_race_pop,percent_income_spent_on_rent,dwellings_2_units,commuters_by_subway_or_elevated,workplaces_percent_change_from_baseline,
                                       male_45_64_bachelors_degree,male_75_to_79,male_45_64_graduate_degree,walked_to_work,black_pop,different_house_year_ago_same_city,
                                       housing_units,not_in_labor_force,female_25_to_29,income_30000_34999,dwellings_2_units,male_pop,pop_25_years_over,one_car,income_150000_199999,
@@ -279,13 +281,13 @@ topUSCovidNormFeatures = dplyr::select(cases_normalized, -Class, -total_pop, -co
                                        hispanic_male_55_64,commute_35_39_mins,employed_construction,amerindian_pop,income_per_capita,female_80_to_84,female_75_to_79,
                                        female_21,employed_science_management_admin_waste,male_21,households,occupied_housing_units,one_parent_families_with_young_children)
 
-rf <-randomForest(deaths_norm ~ . , 
+rf <- randomForest(deaths_norm ~ . , 
                   data=topUSDeathNormFeatures,
                   importance=TRUE,ntree=1000,na.action=na.exclude)
 imp = importance(rf, type=1)
 imp <- data.frame(predictors=rownames(imp),imp)
 sorted = imp
-sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
+sorted = sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
 sorted
 #write.csv(sorted, file = "sortedFeatureImportanceRandomForest-DeathNorm.csv", row.names = TRUE)
 
@@ -295,7 +297,7 @@ rf <-randomForest(cases_norm ~ . ,
 imp = importance(rf, type=1)
 imp <- data.frame(predictors=rownames(imp),imp)
 sorted = imp
-sorted= sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
+sorted = sorted[order(sorted$X.IncMSE, decreasing = TRUE),] 
 sorted
 #write.csv(sorted, file = "sortedFeatureImportanceRandomForest-CovidNorm.csv", row.names = TRUE)
 
@@ -309,7 +311,7 @@ topDeathNormFeatures = dplyr::select(cases_normalized, -Class, -total_pop, -conf
                                      high_school_diploma, group_quarters, black_including_hispanic,commuters_by_subway_or_elevated,less_than_high_school_graduate,
                                      high_school_including_ged)        
 
-TopDeathDataTestScaled =dplyr::select(deathDataTestScaled,Class,
+TopDeathDataTestScaled = dplyr::select(deathDataTestScaled,Class,
                                       dwellings_2_units,employed_agriculture_forestry_fishing_hunting_mining, different_house_year_ago_different_city,two_or_more_races_pop,
                                       mobile_homes, male_45_64_high_school,owner_occupied_housing_units_lower_value_quartile, percent_income_spent_on_rent,
                                       vacant_housing_units,white_male_45_54, median_age,vacant_housing_units_for_sale,commuters_by_public_transportation,
@@ -317,7 +319,7 @@ TopDeathDataTestScaled =dplyr::select(deathDataTestScaled,Class,
                                       armed_forces, amerindian_pop, owner_occupied_housing_units_median_value, median_year_structure_built,median_income,other_race_pop,
                                       high_school_diploma, group_quarters, black_including_hispanic,commuters_by_subway_or_elevated,less_than_high_school_graduate,
                                       high_school_including_ged)
-TopDeathDataTrainScaled =dplyr::select(deathDataTrainScaled,Class,
+TopDeathDataTrainScaled = dplyr::select(deathDataTrainScaled,Class,
                                        dwellings_2_units,employed_agriculture_forestry_fishing_hunting_mining, different_house_year_ago_different_city,two_or_more_races_pop,
                                        mobile_homes, male_45_64_high_school,owner_occupied_housing_units_lower_value_quartile, percent_income_spent_on_rent,
                                        vacant_housing_units,white_male_45_54, median_age,vacant_housing_units_for_sale,commuters_by_public_transportation,
@@ -325,7 +327,7 @@ TopDeathDataTrainScaled =dplyr::select(deathDataTrainScaled,Class,
                                        armed_forces, amerindian_pop, owner_occupied_housing_units_median_value, median_year_structure_built,median_income,other_race_pop,
                                        high_school_diploma, group_quarters, black_including_hispanic,commuters_by_subway_or_elevated,less_than_high_school_graduate,
                                        high_school_including_ged)
-TopDeathDataTestScaled =dplyr::select(deathDataTestScaled,Class,
+TopDeathDataTestScaled = dplyr::select(deathDataTestScaled,Class,
                                        dwellings_2_units,employed_agriculture_forestry_fishing_hunting_mining, different_house_year_ago_different_city,two_or_more_races_pop,
                                        mobile_homes, male_45_64_high_school,owner_occupied_housing_units_lower_value_quartile, percent_income_spent_on_rent,
                                        vacant_housing_units,white_male_45_54, median_age,vacant_housing_units_for_sale,commuters_by_public_transportation,
@@ -333,11 +335,11 @@ TopDeathDataTestScaled =dplyr::select(deathDataTestScaled,Class,
                                        armed_forces, amerindian_pop, owner_occupied_housing_units_median_value, median_year_structure_built,median_income,other_race_pop,
                                        high_school_diploma, group_quarters, black_including_hispanic,commuters_by_subway_or_elevated,less_than_high_school_graduate,
                                        high_school_including_ged)
-Top10DeathDataTrainScaled =dplyr::select(deathDataTrainScaled,Class,
+Top10DeathDataTrainScaled = dplyr::select(deathDataTrainScaled,Class,
                                        dwellings_2_units,employed_agriculture_forestry_fishing_hunting_mining, different_house_year_ago_different_city,two_or_more_races_pop,
                                        mobile_homes, male_45_64_high_school,owner_occupied_housing_units_lower_value_quartile, percent_income_spent_on_rent,
                                        vacant_housing_units,white_male_45_54) 
-Top10DeathDataTestScaled =dplyr::select(deathDataTestScaled,Class,
+Top10DeathDataTestScaled = dplyr::select(deathDataTestScaled,Class,
                                          dwellings_2_units,employed_agriculture_forestry_fishing_hunting_mining, different_house_year_ago_different_city,two_or_more_races_pop,
                                          mobile_homes, male_45_64_high_school,owner_occupied_housing_units_lower_value_quartile, percent_income_spent_on_rent,
                                          vacant_housing_units,white_male_45_54)
@@ -349,76 +351,75 @@ topCovidNormFeatures = dplyr::select(cases_normalized, -Class, -total_pop, -conf
                                      four_more_cars,asian_pop,amerindian_pop,asian_including_hispanic,amerindian_including_hispanic,
                                      employed_agriculture_forestry_fishing_hunting_mining,income_per_capita,less_than_high_school_graduate)
 
-TopCovidDataTestScaled =dplyr::select(CovidDataTestScaled,Class,
+TopCovidDataTestScaled = dplyr::select(CovidDataTestScaled,Class,
                                       armed_forces,female_female_households,vacant_housing_units, hispanic_male_55_64,commute_90_more_mins,
                                       owner_occupied_housing_units_median_value,hispanic_male_45_54,median_rent,hispanic_pop,median_year_structure_built,
                                       asian_male_45_54,hispanic_any_race,two_or_more_races_pop,transit_stations_percent_change_from_baseline,parks_percent_change_from_baseline,
                                       male_45_64_grade_9_12,percent_income_spent_on_rent,median_age,median_income,
                                       four_more_cars,asian_pop,amerindian_pop,asian_including_hispanic,amerindian_including_hispanic,
                                       employed_agriculture_forestry_fishing_hunting_mining,income_per_capita,less_than_high_school_graduate)    
-Top10CovidDataTestScaled =dplyr::select(CovidDataTestScaled,Class,
+Top10CovidDataTestScaled = dplyr::select(CovidDataTestScaled,Class,
                                         armed_forces,female_female_households,vacant_housing_units, hispanic_male_55_64,commute_90_more_mins,
                                         owner_occupied_housing_units_median_value,hispanic_male_45_54,median_rent,hispanic_pop,median_year_structure_built,asian_male_45_54)    
-TopCovidDataTrainScaled =dplyr::select(CovidDataTrainScaled,Class,
+TopCovidDataTrainScaled = dplyr::select(CovidDataTrainScaled,Class,
                                        armed_forces,female_female_households,vacant_housing_units, hispanic_male_55_64,commute_90_more_mins,
                                        owner_occupied_housing_units_median_value,hispanic_male_45_54,median_rent,hispanic_pop,median_year_structure_built,
                                        asian_male_45_54,hispanic_any_race,two_or_more_races_pop,transit_stations_percent_change_from_baseline,parks_percent_change_from_baseline,
                                        male_45_64_grade_9_12,percent_income_spent_on_rent,median_age,median_income,
                                        four_more_cars,asian_pop,amerindian_pop,asian_including_hispanic,amerindian_including_hispanic,
                                        employed_agriculture_forestry_fishing_hunting_mining,income_per_capita,less_than_high_school_graduate)   
-Top10CovidDataTrainScaled =dplyr::select(CovidDataTrainScaled,Class,
+Top10CovidDataTrainScaled = dplyr::select(CovidDataTrainScaled,Class,
                                          armed_forces,female_female_households,vacant_housing_units, hispanic_male_55_64,commute_90_more_mins,
                                          owner_occupied_housing_units_median_value,hispanic_male_45_54,median_rent,hispanic_pop,median_year_structure_built,
                                          asian_male_45_54) 
 
 # sets 1- 3 include mobility data, sets 4 and 5 do not
-covidFeatureSet1train=TopCovidDataTrainScaled
-covidFeatureSet1test= TopCovidDataTestScaled
-covidFeatureSet2train=Top10CovidDataTrainScaled
-covidFeatureSet2test=Top10CovidDataTestScaled 
+covidFeatureSet1train = TopCovidDataTrainScaled
+covidFeatureSet1test = TopCovidDataTestScaled
+covidFeatureSet2train = Top10CovidDataTrainScaled
+covidFeatureSet2test = Top10CovidDataTestScaled 
 # Note grocery_and_pharmacy_percent_change_from_baseline and retail_and_recreation_percent_change_from_baseline
 # were not in test and train datasets
 covidFeatureSet3train = dplyr::select (CovidDataTrainScaled, Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
                                        workplaces_percent_change_from_baseline)
-covidFeatureSet3test =dplyr::select (CovidDataTestScaled,Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
+covidFeatureSet3test = dplyr::select (CovidDataTestScaled,Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
                                      workplaces_percent_change_from_baseline)
 covidFeatureSet4train = dplyr::select (covidFeatureSet1train, -transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
-covidFeatureSet4test =dplyr::select (covidFeatureSet1test, -transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
+covidFeatureSet4test = dplyr::select (covidFeatureSet1test, -transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
 
 
-covidFeatureSet5train =dplyr::select (covidFeatureSet4train,Class, armed_forces,employed_agriculture_forestry_fishing_hunting_mining,four_more_cars,income_per_capita,less_than_high_school_graduate)
+covidFeatureSet5train = dplyr::select (covidFeatureSet4train,Class, armed_forces,employed_agriculture_forestry_fishing_hunting_mining,four_more_cars,income_per_capita,less_than_high_school_graduate)
 covidFeatureSet5test = dplyr::select (covidFeatureSet4test,Class, armed_forces,employed_agriculture_forestry_fishing_hunting_mining,four_more_cars,income_per_capita,less_than_high_school_graduate)
 
-deathFeatureSet1train=TopDeathDataTrainScaled
+deathFeatureSet1train = TopDeathDataTrainScaled
 deathFeatureSet1test = TopDeathDataTestScaled
-deathFeatureSet2train =Top10DeathDataTrainScaled
+deathFeatureSet2train = Top10DeathDataTrainScaled
 deathFeatureSet2test = Top10DeathDataTestScaled
-deathFeatureSet3train =dplyr::select (deathDataTrainScaled, Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
+deathFeatureSet3train = dplyr::select (deathDataTrainScaled, Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
                                       workplaces_percent_change_from_baseline)
-deathFeatureSet3test= dplyr::select (deathDataTestScaled, Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
+deathFeatureSet3test = dplyr::select (deathDataTestScaled, Class, transit_stations_percent_change_from_baseline,residential_percent_change_from_baseline,
                                      workplaces_percent_change_from_baseline)
 deathFeatureSet4train = dplyr::select (deathFeatureSet1train, -workplaces_percent_change_from_baseline,-transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
-deathFeatureSet4test =dplyr::select (deathFeatureSet1test , -workplaces_percent_change_from_baseline, -transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
-deathFeatureSet5train =dplyr::select (deathFeatureSet4train,Class, group_quarters,employed_agriculture_forestry_fishing_hunting_mining, 
+deathFeatureSet4test = dplyr::select (deathFeatureSet1test , -workplaces_percent_change_from_baseline, -transit_stations_percent_change_from_baseline,-parks_percent_change_from_baseline)
+deathFeatureSet5train = dplyr::select (deathFeatureSet4train,Class, group_quarters,employed_agriculture_forestry_fishing_hunting_mining, 
                                       different_house_year_ago_different_city,commuters_by_public_transportation, vacant_housing_units)
 deathFeatureSet5test = dplyr::select (deathFeatureSet4test,Class, group_quarters,employed_agriculture_forestry_fishing_hunting_mining, 
                                       different_house_year_ago_different_city,commuters_by_public_transportation, vacant_housing_units)
 
-cfsDeathFeatureSettrain= dplyr::select (deathDataTrainScaled, Class,median_age,amerindian_pop,other_race_pop,percent_income_spent_on_rent,dwellings_2_units,commuters_by_subway_or_elevated)
-cfsCovidFeatureSettrain =dplyr::select (CovidDataTrainScaled, Class,vacant_housing_units_for_sale,hispanic_male_55_64,male_45_64_high_school,workplaces_percent_change_from_baseline)
-cfsDeathFeatureSettest= dplyr::select (deathDataTestScaled, Class,median_age,amerindian_pop,other_race_pop,percent_income_spent_on_rent,dwellings_2_units,commuters_by_subway_or_elevated)
-cfsCovidFeatureSettest =dplyr::select (CovidDataTestScaled, Class,vacant_housing_units_for_sale,hispanic_male_55_64,male_45_64_high_school,workplaces_percent_change_from_baseline)
+cfsDeathFeatureSettrain = dplyr::select (deathDataTrainScaled, Class,median_age,amerindian_pop,other_race_pop,percent_income_spent_on_rent,dwellings_2_units,commuters_by_subway_or_elevated)
+cfsCovidFeatureSettrain = dplyr::select (CovidDataTrainScaled, Class,vacant_housing_units_for_sale,hispanic_male_55_64,male_45_64_high_school,workplaces_percent_change_from_baseline)
+cfsDeathFeatureSettest = dplyr::select (deathDataTestScaled, Class,median_age,amerindian_pop,other_race_pop,percent_income_spent_on_rent,dwellings_2_units,commuters_by_subway_or_elevated)
+cfsCovidFeatureSettest = dplyr::select (CovidDataTestScaled, Class,vacant_housing_units_for_sale,hispanic_male_55_64,male_45_64_high_school,workplaces_percent_change_from_baseline)
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 
 # Final Feature Sets to use for Training/testing
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-covidtrainFeatureSets=c( list(covidFeatureSet1train),list(covidFeatureSet2train),list(covidFeatureSet3train),list(covidFeatureSet4train),list(covidFeatureSet5train),list(CovidDataTrainScaled), list(cfsCovidFeatureSettrain))
-covidtestFeatureSets=c( list(covidFeatureSet1test),list(covidFeatureSet2test),list(covidFeatureSet3test),list(covidFeatureSet4test),list(covidFeatureSet5test),list(CovidDataTestScaled), list(cfsCovidFeatureSettest) )
-deathtrainFeatureSets=c( list(deathFeatureSet1train),list(deathFeatureSet2train),list(deathFeatureSet3train),list(deathFeatureSet4train),list(deathFeatureSet5train), list(deathDataTrainScaled), list(cfsDeathFeatureSettrain) )
-deathtestFeatureSets=c( list(deathFeatureSet1test),list(deathFeatureSet2test),list(deathFeatureSet3test),list(deathFeatureSet4test),list(deathFeatureSet5test), list(deathDataTestScaled) ,list(cfsDeathFeatureSettest))
+covidtrainFeatureSets = c( list(covidFeatureSet1train),list(covidFeatureSet2train),list(covidFeatureSet3train),list(covidFeatureSet4train),list(covidFeatureSet5train),list(CovidDataTrainScaled), list(cfsCovidFeatureSettrain))
+covidtestFeatureSets = c( list(covidFeatureSet1test),list(covidFeatureSet2test),list(covidFeatureSet3test),list(covidFeatureSet4test),list(covidFeatureSet5test),list(CovidDataTestScaled), list(cfsCovidFeatureSettest) )
+deathtrainFeatureSets = c( list(deathFeatureSet1train),list(deathFeatureSet2train),list(deathFeatureSet3train),list(deathFeatureSet4train),list(deathFeatureSet5train), list(deathDataTrainScaled), list(cfsDeathFeatureSettrain) )
+deathtestFeatureSets = c( list(deathFeatureSet1test),list(deathFeatureSet2test),list(deathFeatureSet3test),list(deathFeatureSet4test),list(deathFeatureSet5test), list(deathDataTestScaled) ,list(cfsDeathFeatureSettest))
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # Classification Models:
